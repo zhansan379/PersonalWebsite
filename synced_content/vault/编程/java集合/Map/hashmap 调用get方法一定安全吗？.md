@@ -1,0 +1,3 @@
+不是，调用 get 方法有几点需要注意的地方：
+• 空指针异常（NullPointerException）：这里要区分两种情况：①如果 HashMap 变量本身是 null（还没 new），那么调用它的任何方法都会抛 NPE，和是不是 null key 没关系；②如果 HashMap 已经正常初始化，那么用 null 作为 key 调用 get(null) / put(null, v) 都是合法的，不会抛 NPE，因为 HashMap 明确支持 null 键（key 为 null 时哈希值会被直接设为 0 放入 0 号桶）。
+• 线程安全：HashMap 本身不是线程安全的。如果在多线程环境中，没有适当的同步措施，同时对 HashMap 进行读写操作可能会导致不可预测的行为。例如，在一个线程中调用 get 方法读取数据，而另一个线程同时修改了结构（如增加或删除元素），可能会导致读取操作得到错误的结果或抛出 ConcurrentModificationException。如果需要在多线程环境中使用类似 HashMap 的数据结构，可以考虑使用 ConcurrentHashMap。
