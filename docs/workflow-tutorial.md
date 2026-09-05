@@ -181,6 +181,7 @@ jobs:
 
 - **复制笔记没生效**：99% 是 `src/content/vault` 在博客仓库被 gitignore 了。workflow 的 `git add` 默认忽略被 ignore 的文件，push 了个寂寞。**这个目录必须被 git 跟踪**。
 - **目录对不上 / 网站空的**：确认本机跑用的 `VAULT_WIKI` 和 workflow 里的值**一致**，别两端不同步。
+- **报 `source not found` 但其实目录存在**：如果你是把 `wiki/` 里的文件全删空了，Git 不跟踪空目录，checkout 出来目录就不存在——这是**正常的删除同步**。同步脚本已处理：源目录缺失时会清空博客端对应的目标目录，而不是报错。改目录才需要担心。
 - **workflow 报权限错误（403/permission）**：钥匙配错了，去第 1 步重刷，确认 scope 勾的是 `Contents: Read and write`，且只授权了博客仓库。
 - **每次笔记空跑**：`[skip ci]` 那段是防止"内容没变也提交"。如果 wiki 没变，会打印 `No changes; skip.`，正常。
 - **私有知识库**：如果 `obsidian-wiki` 是私有的，记住 `wiki/` 推出去后博客仓库是**公开**的，`wiki/` 内容就等于公开了。`raw/` 这类私人内容**绝对不要**放在 `wiki/` 下。

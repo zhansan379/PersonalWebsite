@@ -9,6 +9,7 @@
 //   - 处理不适宜作为静态导入键的文件名（#、$ 等），见 RENAME_MAP
 //   - 改写被重命名笔记的 wiki 链接，保证库内互链不断
 //   - 删除目标里已不在源中的文件，使删除也能同步（幂等）
+//   - 源目录不存在（如 Git 空目录 / 全删空）时清空目标——"删除全部"也同步
 // 仅供 Vercel 之外的本仓库独立运行；GitHub 侧由 vault 仓库的 Action 调用同一脚本。
 
 import { promises as fs } from 'node:fs'
@@ -103,8 +104,15 @@ async function exists(p) {
 
 console.log(`Syncing\n  from ${SOURCE}\n  to   ${DEST}`)
 if (!(await exists(SOURCE))) {
-  console.error(`source not found: ${SOURCE}\nSet VAULT_WIKI to point at your wiki/ dir.`)
-  process.exit(1)
+  // 源目录不存在，通常是知识库把 wiki/ 下的文件全删空了（Git 不跟踪空目录，checkout 后目录不存在）。
+  // 这是"删除同步"：博客仓库里对应的目标也应清空，而不是报错退出。
+  console.warn(`source not found: ${SOURCE}`)
+  console.log('Treating as full deletion: clearing destination.')
+  if (await exists(DEST)) {
+    await fs.rm(DEST, { recursive: true, force: true })
+  }
+  console.log('\nDone. Destination cleared.')
+  process.exit(0)
 }
 await copyTree(SOURCE, DEST)
 await prune(DEST, SOURCE)
