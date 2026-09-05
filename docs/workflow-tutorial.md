@@ -13,8 +13,8 @@
 
 ```
 你在知识库 push 了 wiki/
-        ↓（触发迈 workflow）
-workflow 把 wiki/ 复制进博客仓库的 src/content/vault/
+        ↓（触发 workflow）
+workflow 把 wiki/ 同步进博客仓库的 src/content/vault/
         ↓（bot 提交 + 推送）
 Vercel 看到博客仓库有更新，自动重新构建
         ↓
@@ -25,13 +25,26 @@ Vercel 看到博客仓库有更新，自动重新构建
 
 ---
 
+## 什么都用环境变量配（这是本教程的核心）
+
+`wiki/` 那个**源目录**、以及博客仓库里落脚的**目标目录**，都不写在脚本里写死，而是通过**环境变量**控制：
+
+| 环境变量 | 作用 | 默认值（不设时） |
+|---|---|---|
+| `VAULT_WIKI` | 源目录 = 从哪个文件夹读笔记 | `D:/Obsidian/data/obsidian_journal/wiki`（本地默认）|
+| `VAULT_DEST` | 目标目录 = 写进博客仓库哪里 | 博客仓库的 `src/content/vault` |
+
+本地手动跑、以及 GitHub workflow，都读这两个变量 → **同一个脚本，两处共用**，以后改目录只改配置、不动代码。
+
+---
+
 ## 跟着做（三步）
 
 ### 第 1 步：在博客仓库造一把"钥匙"（PAT）
 
 这个 key 让 workflow 有权限改博客仓库。用浏览器打开博客仓库 GitHub 页面：
 
-1. 点头像 → **Settings** → 拉到最下 **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**。
+1. 点头像 → **Settings** → 拉到最下 **Developer settings** → **Personal access tokens（Fine-grained tokens）** → **Generate new token**。
 2. 填个名字，比如 `blog-sync`。
 3. **Repository access** 选 **Only select repositories**，勾上博客仓库 `zhansan379/PersonalWebsite`。
 4. **Permissions** → **Contents** 设为 **Read and write**（关键，只给这个，别给别的）。
@@ -39,21 +52,29 @@ Vercel 看到博客仓库有更新，自动重新构建
 
 > 值就是一大段乱码，别乱贴、别提交到代码里。它就是你的"钥匙密码"。
 
-### 第 2 步：在知识库仓库里存好钥匙和地址（secrets）
+### 第 2 步：在知识库仓库里存好钥匙、仓库地址和目录（secrets 变量）
 
 打开**知识库仓库**的 GitHub 页面：
 
-1. **Settings** → **Secrets and variables** → **Actions** → **New repository secret**。
-2. 加两个：
+1. **Settings** → **Secrets and variables** → **Actions**。
+2. 在 **Secrets** 下加两个：
 
    | 名字（name）| 填什么 |
    |---|---|
    | `BLOG_PAT` | 第 1 步复制的那串乱码（钥匙）|
    | `BLOG_REPO` | `zhansan379/PersonalWebsite`（要去改的博客仓库地址）|
 
-3. 各点一次 **Add secret**。
+   各点一次 **Add secret**。
 
-> secret = 加密存起来的配置项，workflow 运行时才能读到，别人看不到。`BLOG_REPO` 告诉 workflow"往谁家跑"，`BLOG_PAT` 告诉 workflow"用什么钥匙进门"。
+3. 在 **Variables** 下加一个**可选的目录变量**（想用非默认目录才需要）：
+
+   | 名字（name）| 填什么 |
+   |---|---|
+   | `VAULT_WIKI` | 源目录名，比如 `wiki`（你笔记真的放在哪个文件夹）|
+
+   点 **Add variable**。
+
+> secret = 加密存、别人看不到；variable = 明文存、通常不敏感。`BLOG_PAT`、`BLOG_REPO` 用 secret；目录名这种不敏感的用 variable 即可。不设变量就用默认值，见下文第三步的 `||` 兜底写法。
 
 ### 第 3 步：在知识库仓库放一个 workflow 文件
 
@@ -69,8 +90,11 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:                            # 目录全靠这里配 → 改目录只动这一块
+      VAULT_WIKI: ${{ vars.VAULT_WIKI || 'wiki' }}        # 源目录（本地默认是 D:/Obsidian/...）
+      VAULT_DEST: synced_content/vault                    # 目标目录（博客仓库里写哪）
     steps:
-      # 1. 把知识库仓库(wiki)和历史/代码取下来
+      # 1. 把知识库仓库(wiki)取下来 => 当前工作目录
       - name: Checkout vault
         uses: actions/checkout@v4
 
@@ -82,11 +106,9 @@ jobs:
           token: ${{ secrets.BLOG_PAT }}
           path: blog
 
-      # 3. 删掉博客里旧的知识库，拷进新的 wiki/
-      - name: Copy wiki into blog
-        run: |
-          rm -rf blog/src/content/vault
-          cp -r wiki blog/src/content/vault
+      # 3. 用博客仓库自带的同步脚本，按环境变量把 wiki/ 写进目标目录
+      - name: Sync wiki into blog
+        run: node blog/scripts/sync-wiki.mjs
 
       # 4. 让 bot 提交并推送回博客仓库
       - name: Commit and push
@@ -94,7 +116,7 @@ jobs:
           cd blog
           git config user.name "obsidian-wiki[bot]"
           git config user.email "obsidian-wiki[bot]@users.noreply.github.com"
-          git add -A src/content/vault
+          git add -A "$VAULT_DEST"
           if git diff --cached --quiet; then
             echo "No changes; skip."; exit 0
           fi
@@ -102,7 +124,9 @@ jobs:
           git push origin main
 ```
 
-每一段干嘛，上面注释已经写了。存盘后 commit + push 这个 yml 到知识库仓库的 `main`。
+每段干嘛，上面注释已经写了。存盘后 commit + push 这个 yml 到知识库仓库的 `main`。
+
+> **为什么用它自带的 `sync-wiki.mjs` 而不是手动 `cp -r`**：这个脚本做了 `#`/`$` 这类会破坏 Vite 打包的文件名消毒、以及笔记间 `[[链接]]` 的改写，`cp` 做不到。workflow 里 `run: node blog/scripts/sync-wiki.mjs` 就是调博客仓库里那份脚本，脚本读取上面 `env` 的两个变量决定从哪读到哪写。
 
 ---
 
@@ -110,14 +134,24 @@ jobs:
 
 - 随便改 `wiki/` 里一篇笔记（或新建一篇），push 到知识库仓库。
 - 回 GitHub，知识库仓库的 **Actions** 标签页，能看到一次 `Sync wiki to blog` 运行。
-- 运行全绿后，去博客仓库看，`src/content/vault/` 已经多了/更新了对应文件。
+- 运行全绿后，去博客仓库看，目标目录（默认 `src/content/vault/`）已经多了/更新了对应文件。
 - 等 Vercel 构建完，刷新网站 `/vault`，内容出来了。
+
+---
+
+## 改目录怎么改（只用配，不动代码）
+
+- **本机手动跑**：`VAULT_WIKI=D:/其它/wiki VAULT_DEST=src/content/别的 node scripts/sync-wiki.mjs`。
+- **workflow 自动跑**：改知识库仓库 Actions 里的 **Variables**（`VAULT_WIKI`），或直接改第 3 步 yml 里 `env:` 块的值。两处写成一样即可。
+
+> 注意：第 4 步 `git add -A "$VAULT_DEST"` 引用了 `VAULT_DEST`，所以这个变量在 workflow 里**必须设**（yml 里已给了默认 `synced_content/vault`）。另外 `on.push.paths: ['wiki/**']` 那一行是 GitHub 触发规则，**不支持读变量**，必须手写真实的源目录路径。
 
 ---
 
 ## 常见的坑
 
 - **复制笔记没生效**：99% 是 `src/content/vault` 在博客仓库被 gitignore 了。workflow 的 `git add` 默认忽略被 ignore 的文件，push 了个寂寞。**这个目录必须被 git 跟踪**。
+- **目录对不上 / 网站空的**：确认本机跑用的 `VAULT_WIKI` 和 workflow 里的值**一致**，别两端不同步。
 - **workflow 报权限错误（403/permission）**：钥匙配错了，去第 1 步重刷，确认 scope 勾的是 `Contents: Read and write`，且只授权了博客仓库。
 - **每次笔记空跑**：`[skip ci]` 那段是防止"内容没变也提交"。如果 wiki 没变，会打印 `No changes; skip.`，正常。
 - **私有知识库**：如果 `obsidian-wiki` 是私有的，记住 `wiki/` 推出去后博客仓库是**公开**的，`wiki/` 内容就等于公开了。`raw/` 这类私人内容**绝对不要**放在 `wiki/` 下。

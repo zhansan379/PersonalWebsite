@@ -16,7 +16,10 @@ import { resolve, dirname, relative, join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const SOURCE = resolve(process.env.VAULT_WIKI || 'D:/Obsidian/data/obsidian_journal/wiki')
-const DEST = resolve(fileURLToPath(new URL('..', import.meta.url)), 'src/content/vault')
+const DEST = resolve(
+  process.env.VAULT_DEST ||
+    join(fileURLToPath(new URL('..', import.meta.url)), 'src/content/vault'),
+)
 const RENAME_MAP = {
   'MyBatis 的 #{} 与 ${} 区别.md': 'MyBatis 的占位符区别.md', // #/ $ 会破坏 Vite ?raw 解析
 }
