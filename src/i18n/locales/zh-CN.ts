@@ -55,6 +55,11 @@ const messages: MessageSchema = {
     subtitle: '由 Obsidian 整理的结构化个人知识库，随笔记同步更新。',
     directory: '目录',
     onThisPage: '本页目录',
+    tabs: {
+      directory: '目录',
+      timeline: '时间线',
+      tags: '标签',
+    },
     search: '搜索标题、路径或标签…',
     noResults: '没有匹配「{query}」的笔记',
     emptyTitle: '知识库还是空的',

@@ -57,6 +57,11 @@ export interface MessageSchema {
     subtitle: string
     directory: string
     onThisPage: string
+    tabs: {
+      directory: string
+      timeline: string
+      tags: string
+    }
     notes: string
     canvases: string
     search: string

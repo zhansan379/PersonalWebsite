@@ -55,6 +55,11 @@ const messages: MessageSchema = {
     subtitle: 'A structured personal knowledge base curated in Obsidian, kept in sync with the notes.',
     directory: 'Directory',
     onThisPage: 'On this page',
+    tabs: {
+      directory: 'Directory',
+      timeline: 'Timeline',
+      tags: 'Tags',
+    },
     search: 'Search title, path or tags…',
     noResults: 'No notes match “{query}”',
     emptyTitle: 'The knowledge base is empty',

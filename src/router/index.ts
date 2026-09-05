@@ -14,19 +14,9 @@ export const router = createRouter({
           component: () => import('../views/HomeView.vue'),
         },
         {
-          path: 'tags',
-          name: 'tags',
-          component: () => import('../views/TagsView.vue'),
-        },
-        {
           path: 'tags/:tag',
           name: 'tag-posts',
           component: () => import('../views/TagPostsView.vue'),
-        },
-        {
-          path: 'archive',
-          name: 'archive',
-          component: () => import('../views/ArchiveView.vue'),
         },
         {
           path: 'about',

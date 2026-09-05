@@ -15,9 +15,9 @@ const projects = computed<Project[]>(() => [
     description: t('projects.desc1'),
     link: 'https://github.com/zhansan379/Livetalking_Chat',
     images: {
-      col1_1: 'https://picsum.photos/seed/livetalk-a/600/460',
-      col1_2: 'https://picsum.photos/seed/livetalk-b/600/680',
-      col2: 'https://picsum.photos/seed/livetalk-c/800/1040',
+      col1_1: '/projects/livetalk-2.png',
+      col1_2: '/projects/livetalk-3.png',
+      col2: '/projects/livetalk-main.png',
     },
   },
   {
@@ -27,21 +27,9 @@ const projects = computed<Project[]>(() => [
     description: t('projects.desc2'),
     link: 'https://github.com/zhansan379/boss-crawler-skill',
     images: {
-      col1_1: 'https://picsum.photos/seed/boss-a/600/460',
-      col1_2: 'https://picsum.photos/seed/boss-b/600/680',
-      col2: 'https://picsum.photos/seed/boss-c/800/1040',
-    },
-  },
-  {
-    id: 3,
-    name: 'PersonalWebsite',
-    category: t('projects.os'),
-    description: t('projects.desc3'),
-    link: 'https://github.com/zhansan379/PersonalWebsite',
-    images: {
-      col1_1: 'https://picsum.photos/seed/site-a/600/460',
-      col1_2: 'https://picsum.photos/seed/site-b/600/680',
-      col2: 'https://picsum.photos/seed/site-c/800/1040',
+      col1_1: '/projects/boss-img10.png',
+      col1_2: '/projects/boss-img3.png',
+      col2: '/projects/boss-img7.png',
     },
   },
 ])

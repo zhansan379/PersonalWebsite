@@ -24,8 +24,8 @@ const typewriterText = computed(() => t('hero.typewriter') ?? '')
 const { displayed, done } = useTypewriter(typewriterText)
 
 const quickLinks = computed(() => [
-  { to: { name: 'tags' }, label: t('blogNav.tags') },
-  { to: { name: 'archive' }, label: t('blogNav.archive') },
+  { to: { name: 'vault-index', query: { tab: 'timeline' } }, label: t('vault.tabs.timeline') },
+  { to: { name: 'vault-index', query: { tab: 'tags' } }, label: t('blogNav.tags') },
   { to: { name: 'about' }, label: t('blogNav.about') },
 ])
 
