@@ -1,5 +1,0 @@
-• HashMap线程不安全，效率高一点，**可以存储null的key和value**，null的key只能有一个，null的value可以有多个。默认初始容量为16，每次扩充变为原来2倍。创建时如果给定了初始容量，则扩充为2的幂次方大小。底层数据结构为数组+链表，插入元素后如果链表长度大于阈值（默认为8），先判断数组长度是否小于64，如果小于，则扩充数组，反之将链表转化为红黑树，以减少搜索时间。
-• Hashtable线程安全，效率低一点，其内部方法基本都经过synchronized修饰，不可以有null的key和value。默认初始容量为11，每次扩容变为原来的2n+1。创建时给定了初始容量，会直接用给定的大小。底层数据结构为数组+链表。它基本被淘汰了，要保证线程安全可以用ConcurrentHashMap。
-• ConcurrentHashMap 是 Java 中的线程安全哈希表实现，它可以在多线程环境下并发进行读写操作，而不需要像 Hashtable 那样对整个表加锁。与 HashMap 不同，**ConcurrentHashMap 不允许 null key 或 null value（会抛 NPE），原因是多线程下 null 无法区分「key 不存在」还是「key 对应的 value 就是 null」。需要区分两个版本：**
-◦ JDK 1.7 及以前：基于分段锁实现，将整个哈希表拆成多个 Segment，每个 Segment 相当于一个小型的 HashMap，拥有自己的数组和独立的 ReentrantLock。写操作只需要锁定对应的 Segment，不同 Segment 之间的写入可以并行，读操作基本不需要加锁（依赖 volatile 可见性）。
-◦ JDK 1.8 及以后：取消了 Segment，直接在 table 数组的头节点上加锁，底层结构变为 数组 + 链表 / 红黑树，使用 volatile + CAS + synchronized 组合保证线程安全——空槽位写入走 CAS 乐观更新，哈希碰撞时对桶的头节点 synchronized 加锁，锁粒度从"段"进一步缩小到"桶"，并发度更高。
