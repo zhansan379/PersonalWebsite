@@ -38,7 +38,17 @@ Built with Vue 3 + TypeScript + Vite + Tailwind CSS + Vue Router + vue-i18n.
 
 ## Content
 
-Blog posts live as Markdown in `src/content/posts/{zh,en}/`, each with frontmatter (`title`, `date`, `tags`, `featured`, …). About pages are in `src/content/about/`.
+Blog / vault notes are one Chinese-language corpus synced in from an Obsidian knowledge base into `src/content/vault/`. About pages are in `src/content/about/`.
+
+## Vault sync (GitHub workflow)
+
+The `/vault` pages are driven by the Obsidian knowledge base. To have notes auto-pushed from your knowledge-base repo into this one on every commit, follow [`docs/workflow-tutorial.md`](docs/workflow-tutorial.md) — a plain-language guide covering:
+
+- the GitHub Actions workflow (`paths` trigger + `VAULT_WIKI`/`VAULT_DEST` env config),
+- the `BLOG_PAT` / `BLOG_REPO` secrets,
+- optional push-to-a-branch and switching sync directories.
+
+For local use you can run `npm run sync:vault` to copy the wiki into `src/content/vault/` without a workflow.
 
 ## Development
 
