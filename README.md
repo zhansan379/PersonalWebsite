@@ -6,9 +6,13 @@ Built with Vue 3 + TypeScript + Vite + Tailwind CSS + Vue Router + vue-i18n.
 
 > 页面截图
 >
-> ![首页](./screenshots/home.png)
+> <img width="2549" height="1191" alt="image" src="https://github.com/user-attachments/assets/2f40ce1a-dee4-4525-90d4-e6158f13ee52" />
 >
-> ![博客列表](./screenshots/blog.png)
+> <img width="2549" height="1191" alt="image" src="https://github.com/user-attachments/assets/4f2070ea-8298-4ece-bab2-7bd307ceef0c" />
+> 
+> <img width="2549" height="1191" alt="image" src="https://github.com/user-attachments/assets/b676447f-9a58-4317-8a90-83713c1b9754" />
+> 
+
 
 ## Features
 
@@ -19,17 +23,6 @@ Built with Vue 3 + TypeScript + Vite + Tailwind CSS + Vue Router + vue-i18n.
 - Mobile menu, copy-to-clipboard contact pill
 - Blog with Markdown content, reading-time estimate, tag + archive views
 - Light / dark theme toggle
-
-## Screenshots
-
-> 页面截图占位
-
-| 页面 | 截图 |
-| --- | --- |
-| 首页 | ![首页](/assets/screenshots/home.png?raw=true) |
-| 博客列表 | ![博客列表](/assets/screenshots/blog.png?raw=true) |
-| 文章详情 | ![文章详情](/assets/screenshots/post.png?raw=true) |
-| 关于 | ![关于](/assets/screenshots/about.png?raw=true) |
 
 ## Routes
 
