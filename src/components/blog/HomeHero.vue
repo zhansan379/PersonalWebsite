@@ -7,10 +7,16 @@ import { useVideoScrub } from '../../composables/useVideoScrub'
 const VIDEO_SRC = '/video/mainframe-hero@1080.mp4'
 const EMAIL = '3084824007@qq.com'
 const VIDEO_POSITION = '70% center'
+/** 触屏设备取视频这个比例处的一帧做静态背景（不是循环播放）。 */
+const CAPTURE_FRACTION = 0.4
+/** 触屏判断：主指针是粗指针（手机/平板）→ 鼠标 scrub 不存在，改用静态帧背景。 */
+const isTouch =
+  typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
 
 const { t } = useI18n()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
+const sectionRef = ref<HTMLElement | null>(null)
 const { onVideoSeeked } = useVideoScrub(videoRef)
 
 const introLines = computed(() => [t('hero.introLine1'), t('hero.introLine2')])
@@ -28,18 +34,48 @@ const copied = ref(false)
 let pillsTimer: number | undefined
 
 onMounted(() => {
-  // 触屏设备（手机/平板）没有鼠标，scrub 不会触发，背景视频会停在首帧（黑屏）。
-  // 这里直接静音自动播放；桌面保持"鼠标拖动取帧"的招牌效果不动。
-  if (window.matchMedia('(pointer: coarse)').matches) {
-    const video = videoRef.value
-    if (video?.play) video.play().catch(() => {
-      /* autoplay blocked —— 停在首帧，属浏览器策略，不报错 */
-    })
-  }
+  if (isTouch) captureStaticFrame()
   pillsTimer = window.setTimeout(() => {
     showPills.value = true
   }, 500)
 })
+
+/**
+ * 触屏设备：不播放视频，而是 seek 到视频某一帧，用 canvas 截出来转成 data URL，
+ * 作为整个 hero 的背景图，并隐藏 <video>。桌面（有鼠标）保持 scrub 取帧不变。
+ */
+function captureStaticFrame(): void {
+  const video = videoRef.value
+  if (!video) return
+  const run = (): void => {
+    if (video.readyState < 1) return
+    video.pause()
+    const dur = Number.isFinite(video.duration) ? video.duration : 0
+    if (dur <= 0) return
+    const paint = (): void => {
+      video.removeEventListener('seeked', paint)
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth || 1280
+        canvas.height = video.videoHeight || 720
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+        if (sectionRef.value) {
+          sectionRef.value.style.backgroundImage = `url(${dataUrl})`
+        }
+      } catch {
+        /* 截帧失败就保持现状（黑底），不阻塞页面。 */
+      }
+      video.style.visibility = 'hidden'
+    }
+    video.addEventListener('seeked', paint)
+    video.currentTime = Math.max(0, Math.min(dur * CAPTURE_FRACTION, dur - 0.05))
+  }
+  if (video.readyState >= 1) run()
+  else video.addEventListener('loadedmetadata', run, { once: true })
+}
 
 onUnmounted(() => {
   if (pillsTimer !== undefined) window.clearTimeout(pillsTimer)
@@ -60,8 +96,10 @@ async function copyEmail(): Promise<void> {
 
 <template>
   <section
+    ref="sectionRef"
     class="relative flex min-h-[560px] w-full flex-col justify-end overflow-hidden bg-black"
     style="height: 92svh"
+    :style="{ backgroundSize: 'cover', backgroundPosition: VIDEO_POSITION }"
   >
     <!-- Background video, scrubbed by horizontal mouse movement -->
     <video
@@ -70,12 +108,8 @@ async function copyEmail(): Promise<void> {
       :style="{ objectPosition: VIDEO_POSITION }"
       :src="VIDEO_SRC"
       muted
-      loop
       playsinline
       preload="auto"
-      x5-video-player-type="h5"
-      x5-playsinline
-      webkit-playsinline
       @seeked="onVideoSeeked"
     ></video>
 
