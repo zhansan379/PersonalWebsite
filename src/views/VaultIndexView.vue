@@ -133,8 +133,8 @@ function noteLink(id: string) {
       </p>
     </div>
 
-    <!-- 默认布局 -->
-    <div v-else class="grid items-start gap-8 lg:grid-cols-[272px_1fr]">
+    <!-- 默认布局：目录树 +（有画布时）画布，有什么显示什么 -->
+    <div v-else class="grid items-start gap-8" :class="canvasList.length ? 'lg:grid-cols-[272px_1fr]' : ''">
       <!-- 目录树 -->
       <aside class="lg:sticky lg:top-[5.5rem]">
         <h2 class="mb-1 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted dark:text-muted-dark">
@@ -146,10 +146,10 @@ function noteLink(id: string) {
         </div>
       </aside>
 
-      <!-- 画布 -->
-      <section>
+      <!-- 画布：无画布时不渲染右栏 -->
+      <section v-if="canvasList.length">
         <h2 class="mb-3 text-lg font-semibold">{{ t('vault.canvases') }}</h2>
-        <div v-if="canvasList.length" class="grid gap-3 sm:grid-cols-2">
+        <div class="grid gap-3 sm:grid-cols-2">
           <RouterLink
             v-for="c in canvasList"
             :key="c.id"
@@ -166,7 +166,6 @@ function noteLink(id: string) {
             </div>
           </RouterLink>
         </div>
-        <p v-else class="text-sm text-muted dark:text-muted-dark">—</p>
       </section>
     </div>
     </template>
