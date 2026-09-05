@@ -146,6 +146,8 @@ jobs:
 
 > 注意：第 4 步 `git add -A "$VAULT_DEST"` 引用了 `VAULT_DEST`，所以这个变量在 workflow 里**必须设**（yml 里已给了默认 `synced_content/vault`）。另外 `on.push.paths: ['wiki/**']` 那一行是 GitHub 触发规则，**不支持读变量**，必须手写真实的源目录路径。
 
+> ⚠️ **换源目录名时的坑（`paths` 和 `VAULT_WIKI` 必须一起改）**：`paths` 是"触发开关"，`VAULT_WIKI` 是"脚本从哪读"，两者管不同的事——`paths` 决定进不进门，`VAULT_WIKI` 决定进门后往哪走。所以默认没问题（两边都写 `wiki`）；但如果你把 `VAULT_WIKI` 改成别的（比如 `notes`），`paths` 里那行**必须同步改成 `notes/**`**，否则你改 `notes/` 时触发规则看的是 `wiki/`，根本不会启动 workflow，白改。
+
 ---
 
 ## 常见的坑
