@@ -20,8 +20,10 @@ function formatDate(iso: string): string {
     class="group flex flex-col gap-3 rounded-2xl border border-border p-6 transition-colors hover:border-accent/40 dark:border-border-dark dark:hover:border-accent/50"
   >
     <header class="flex items-center gap-x-3 text-sm text-muted dark:text-muted-dark">
-      <time :datetime="post.date" class="font-mono">{{ formatDate(post.date) }}</time>
-      <span aria-hidden="true">·</span>
+      <template v-if="post.date">
+        <time :datetime="post.date" class="font-mono">{{ formatDate(post.date) }}</time>
+        <span aria-hidden="true">·</span>
+      </template>
       <span>{{ t('post.readTime', { minutes: post.readingTime }) }}</span>
     </header>
 

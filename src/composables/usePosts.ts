@@ -9,8 +9,8 @@ export interface Post {
   /** Vault note id (vault-relative path without `.md`), e.g. `编程/mq/1.什么是消息队列`. Uniquely identifies a note across the single corpus. */
   slug: string
   title: string
-  /** ISO date string, e.g. `2026-09-01`; falls back created → updated → 1970-01-01. */
-  date: string
+  /** ISO date string, e.g. `2026-09-01`; falls back created → updated, or `null` when neither is set. */
+  date: string | null
   tags: string[]
   /** Optional short summary; falls back to the first words of the body. */
   excerpt: string
@@ -41,7 +41,7 @@ function toPost(note: import('./useVault').VaultNote): Post {
   return {
     slug: note.id,
     title: note.title,
-    date: note.created ?? note.updated ?? '1970-01-01',
+    date: note.created ?? note.updated ?? null,
     tags: note.tags,
     excerpt: excerptFromBody(note.body) || '——',
     featured: note.featured,
@@ -59,7 +59,8 @@ export function usePosts() {
   const posts: Post[] = api.notes.map(toPost)
 
   function all(): Post[] {
-    return [...posts].sort((a, b) => b.date.localeCompare(a.date))
+    // 无日期（date 为 null）的文章排到末尾。
+    return [...posts].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
   }
 
   function bySlug(slug: string): Post | undefined {

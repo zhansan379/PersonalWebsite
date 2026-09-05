@@ -39,6 +39,7 @@ const messages: MessageSchema = {
   },
   archive: {
     subtitle: '按时间归档全部文章。',
+    undated: '未标注日期',
   },
   vault: {
     title: '知识库',
