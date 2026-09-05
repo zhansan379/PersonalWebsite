@@ -11,7 +11,7 @@ import { useVideoScrub } from '../composables/useVideoScrub'
 
 const VIDEO_SRC = '/video/mainframe-hero.mp4'
 
-const EMAIL = 'hello@mainframe.co'
+const EMAIL = '3084824007@qq.com'
 
 const VIDEO_POSITION = '70% center'
 
@@ -109,7 +109,7 @@ async function copyEmail(): Promise<void> {
         class="text-[21px] tracking-tight sm:text-[26px]"
         :style="{ fontFamily: 'var(--font-heading)' }"
       >
-        Mainframe®
+        Goto®
       </span>
       <span
         class="select-none text-[25px] sm:text-[30px]"

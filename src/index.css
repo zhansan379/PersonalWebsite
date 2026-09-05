@@ -1,5 +1,22 @@
 @import 'tailwindcss';
 
+/* Tailwind class variant bound to our `data-theme` attribute so the whole
+   layout (and the current locale overrides below) can drive dark mode. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+  --font-heading: 'HelveticaNowDisplay-Medium', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'HelveticaNowDisplayW01-Rg', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Light palette (dark overrides live further down). */
+  --color-background: #fafaf9;
+  --color-foreground: #1c1917;
+  --color-secondary: #57534e;
+  --color-muted: #78716c;
+  --color-border: #e7e5e4;
+  --color-accent: #4f46e5;
+}
+
 /*
  * Self-hosted fonts — originally served from db.onlinewebfonts.com.
  * Downloaded locally as woff2 (+ woff fallback) and referenced from the
@@ -46,11 +63,14 @@
   font-display: swap;
 }
 
-:root {
-  --font-heading:
-    'HelveticaNowDisplay-Medium', 'Helvetica Neue', Arial, sans-serif;
-  --font-body:
-    'HelveticaNowDisplayW01-Rg', 'Helvetica Neue', Arial, sans-serif;
+/* Dark palette: rebind the same design tokens under data-theme="dark". */
+:root[data-theme='dark'] {
+  --color-background: #0d0d0d;
+  --color-foreground: #f5f5f4;
+  --color-secondary: #a8a29e;
+  --color-muted: #a8a29e;
+  --color-border: #262626;
+  --color-accent: #a5b4fc;
 }
 
 /* Chinese mode: swap in 思源宋体 for the whole page. */
@@ -62,8 +82,8 @@ html[lang='zh-CN'] {
 body {
   margin: 0;
   font-family: var(--font-body);
-  /* Dark ground so the page doesn't flash white before the video loads */
-  background: #000;
+  background: var(--color-background);
+  color: var(--color-foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

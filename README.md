@@ -1,6 +1,6 @@
 # PersonalWebsite
 
-Mainframe® — a full-screen creative agency hero landing page.
+Goto® — a full-screen creative agency hero landing page.
 
 Built with Vue 3 + TypeScript + Vite + Tailwind CSS.
 
