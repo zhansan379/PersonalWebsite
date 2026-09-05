@@ -27,7 +27,7 @@ function formatDate(iso: string): string {
 
     <h3 class="font-heading text-xl leading-snug">
       <RouterLink
-        :to="{ name: 'post-detail', params: { slug: post.slug } }"
+        :to="{ name: 'vault-note', params: { pathMatch: post.slug.split('/') } }"
         class="transition-colors hover:text-accent dark:hover:text-accent"
       >
         {{ post.title }}

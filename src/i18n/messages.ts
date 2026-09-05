@@ -30,10 +30,10 @@ export interface MessageSchema {
   }
   blogNav: {
     home: string
-    blog: string
     tags: string
     archive: string
     about: string
+    vault: string
   }
   footer: {
     tagline: string
@@ -51,17 +51,36 @@ export interface MessageSchema {
     countSuffix: string
     empty: string
     emptyHint: string
-    prev: string
-    next: string
-    notFound: string
-    backToBlog: string
   }
   tags: {
     title: string
     subtitle: string
     label: string
+    search: string
+    none: string
   }
   archive: {
     subtitle: string
+  }
+  vault: {
+    title: string
+    subtitle: string
+    directory: string
+    onThisPage: string
+    notes: string
+    canvases: string
+    search: string
+    noResults: string
+    emptyTitle: string
+    emptyHint: string
+    missingHint: string
+    notFound: string
+    backToIndex: string
+    created: string
+    updated: string
+    openCanvas: string
+    copy: string
+    copied: string
+    back: string
   }
 }

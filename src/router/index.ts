@@ -14,16 +14,6 @@ export const router = createRouter({
           component: () => import('../views/HomeView.vue'),
         },
         {
-          path: 'blog',
-          name: 'blog-index',
-          component: () => import('../views/BlogIndexView.vue'),
-        },
-        {
-          path: 'blog/:slug',
-          name: 'post-detail',
-          component: () => import('../views/PostDetailView.vue'),
-        },
-        {
           path: 'tags',
           name: 'tags',
           component: () => import('../views/TagsView.vue'),
@@ -42,6 +32,16 @@ export const router = createRouter({
           path: 'about',
           name: 'about',
           component: () => import('../views/AboutView.vue'),
+        },
+        {
+          path: 'vault',
+          name: 'vault-index',
+          component: () => import('../views/VaultIndexView.vue'),
+        },
+        {
+          path: 'vault/:pathMatch(.*)*',
+          name: 'vault-note',
+          component: () => import('../views/VaultNoteView.vue'),
         },
       ],
     },

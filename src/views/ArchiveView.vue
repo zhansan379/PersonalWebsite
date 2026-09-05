@@ -29,8 +29,8 @@ const groups = computed<YearGroup[]>(() => {
     }))
 })
 
-function monthLabel(isoMonth: string): string {
-  const date = new Date(`${isoMonth}-01T00:00:00`)
+function monthLabel(year: string, isoMonth: string): string {
+  const date = new Date(`${year}-${isoMonth}-01T00:00:00`)
   return date.toLocaleDateString(locale.value.startsWith('zh') ? 'zh-CN' : 'en-US', {
     month: 'long',
   })
@@ -50,12 +50,12 @@ function monthLabel(isoMonth: string): string {
         <div class="flex flex-col gap-6">
           <section v-for="m in group.months" :key="m.month">
             <h3 class="mb-3 text-sm font-medium uppercase tracking-widest text-muted dark:text-muted-dark">
-              {{ monthLabel(m.month) }}
+              {{ monthLabel(group.year, m.month) }}
             </h3>
             <ul class="flex flex-col divide-y divide-border dark:divide-border-dark">
               <li v-for="post in m.posts" :key="post.slug">
                 <RouterLink
-                  :to="{ name: 'post-detail', params: { slug: post.slug } }"
+                  :to="{ name: 'vault-note', params: { pathMatch: post.slug.split('/') } }"
                   class="group flex items-baseline justify-between gap-4 py-3"
                 >
                   <span class="font-medium transition-colors group-hover:text-accent">{{ post.title }}</span>

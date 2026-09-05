@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:vault": "node scripts/sync-wiki.mjs",
+    "verify:vault": "node scripts/_verify-vault.mjs"
   },
   "dependencies": {
     "marked": "^18.0.11",

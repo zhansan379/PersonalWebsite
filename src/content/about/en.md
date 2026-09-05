@@ -1,6 +1,6 @@
 # About
 
-Hi, I maintain Goto. This is where I share thoughts on full-stack development, design, and engineering.
+Hi, I am Goto. This is where I share thoughts on full-stack development, design, and engineering.
 
 ## What I do
 

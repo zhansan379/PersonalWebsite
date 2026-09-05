@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { marked } from 'marked'
+import { renderMarkdown } from '../../lib/markdown'
 
 const props = defineProps<{ source: string }>()
 
-const html = computed(() => marked.parse(props.source, { async: false }) as string)
+const html = computed(() => renderMarkdown(props.source))
 </script>
 
 <template>
@@ -109,10 +109,14 @@ const html = computed(() => marked.parse(props.source, { async: false }) as stri
 
 /* Tables (GFM) */
 .prose-zh :deep(table) {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin: 1.4em 0;
   font-size: 0.95em;
+  -webkit-overflow-scrolling: touch;
 }
 .prose-zh :deep(th),
 .prose-zh :deep(td) {

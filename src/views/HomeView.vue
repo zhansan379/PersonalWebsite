@@ -27,7 +27,7 @@ const featured = computed(() => {
           {{ t('home.featured') }}
         </h2>
         <RouterLink
-          :to="{ name: 'blog-index' }"
+          :to="{ name: 'vault-index' }"
           class="text-sm text-accent transition-opacity hover:opacity-70"
         >
           {{ t('home.all') }}

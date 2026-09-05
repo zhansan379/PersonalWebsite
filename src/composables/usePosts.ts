@@ -1,92 +1,25 @@
-import type { SupportedLocale } from '../i18n'
-import { useI18n } from 'vue-i18n'
+import { useVault } from './useVault'
 
 /**
- * A single blog post, derived from a Markdown file's frontmatter + body.
- * `slug` uniquely identifies a post across locales (`/blog/:slug`).
+ * A single "post" as surfaced to the blog-facing views. Since the vault is the
+ * single content source, a Post is a thin projection of a vault note — the
+ * view layer keeps consuming the same methods as before.
  */
 export interface Post {
+  /** Vault note id (vault-relative path without `.md`), e.g. `编程/mq/1.什么是消息队列`. Uniquely identifies a note across the single corpus. */
   slug: string
   title: string
-  /** ISO date string, e.g. `2026-09-01`. */
+  /** ISO date string, e.g. `2026-09-01`; falls back created → updated → 1970-01-01. */
   date: string
   tags: string[]
   /** Optional short summary; falls back to the first words of the body. */
   excerpt: string
-  /** Whether to surface this post on the home page. */
+  /** Whether this note is surfaced on the home page (`frontmatter.featured`). */
   featured: boolean
   /** Raw Markdown body (frontmatter stripped). */
   content: string
   /** Reading time in minutes, estimated from word/char count. */
   readingTime: number
-}
-
-interface RawPost {
-  slug: string
-  title: string
-  date: string
-  tags: string[]
-  excerpt: string
-  featured: boolean
-  content: string
-}
-
-type RawValues = {
-  slug?: string
-  title?: string
-  date?: string
-  tags?: string[]
-  excerpt?: string
-  featured?: boolean
-}
-
-/**
- * Import every Markdown post eagerly, by locale directory, so that the type
- * check and bundler know the full content graph ahead of time (pure static).
- */
-const zhModules = import.meta.glob('../content/posts/zh/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-})
-const enModules = import.meta.glob('../content/posts/en/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-})
-
-const rawByLocale: Record<SupportedLocale, Record<string, string>> = {
-  'zh-CN': zhModules as unknown as Record<string, string>,
-  'en-US': enModules as unknown as Record<string, string>,
-}
-
-/** Strip leading `---\n…\n---` frontmatter and parse each `key: value` line. */
-function parseFrontmatter(raw: string): {
-  attributes: RawValues
-  body: string
-} {
-  const match = /^﻿?---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(raw)
-  if (!match) return { attributes: {}, body: raw }
-  const values: RawValues = {}
-  const unquote = (s: string): string => s.replace(/^["']|["']$/g, '')
-  for (const line of match[1].split(/\r?\n/)) {
-    const sep = line.indexOf(':')
-    if (!line.trim() || line.trim().startsWith('#') || sep === -1) continue
-    const key = line.slice(0, sep).trim()
-    const value = line.slice(sep + 1).trim()
-    if (key === 'slug' || key === 'title' || key === 'date' || key === 'excerpt') {
-      values[key] = unquote(value)
-    } else if (key === 'tags') {
-      values.tags = value
-        .replace(/^\[|\]$/g, '')
-        .split(',')
-        .map((s) => unquote(s.trim()))
-        .filter(Boolean)
-    } else if (key === 'featured') {
-      values.featured = value.trim().toLowerCase() === 'true'
-    }
-  }
-  return { attributes: values, body: raw.slice(match[0].length) }
 }
 
 /** Rough reading-time estimate: CJK ~150 chars/min, Latin ~200 words/min. */
@@ -104,43 +37,29 @@ function excerptFromBody(body: string): string {
   return text.split(/\s+/).filter(Boolean).slice(0, 40).join(' ').slice(0, 140)
 }
 
-function buildPost(filePath: string, raw: string): Post {
-  const { attributes, body } = parseFrontmatter(raw)
-  const { slug, title, date } = attributes
-  const tags = attributes.tags ?? []
-  const excerpt =
-    attributes.excerpt?.trim() || excerptFromBody(body) || '——'
+function toPost(note: import('./useVault').VaultNote): Post {
   return {
-    slug: String(slug ?? filePath.split('/').pop() ?? 'post'),
-    title: String(title ?? 'Untitled'),
-    date: String(date ?? '1970-01-01'),
-    tags,
-    excerpt,
-    featured: Boolean(attributes.featured),
-    content: body.trim(),
-    readingTime: estimateReadingTime(body),
+    slug: note.id,
+    title: note.title,
+    date: note.created ?? note.updated ?? '1970-01-01',
+    tags: note.tags,
+    excerpt: excerptFromBody(note.body) || '——',
+    featured: note.featured,
+    content: note.body,
+    readingTime: estimateReadingTime(note.body),
   }
 }
 
-const postsByLocale = (Object.keys(rawByLocale) as SupportedLocale[]).reduce(
-  (acc, locale) => {
-    acc[locale] = Object.entries(rawByLocale[locale]).map(([path, raw]) =>
-      buildPost(path, raw),
-    )
-    return acc
-  },
-  {} as Record<SupportedLocale, Post[]>,
-)
-
-/** All posts for the current locale, newest first. */
+/**
+ * Blog-facing views read the knowledge base reference-shaped notes. Built
+ * eagerly at module load; `all()` is locale-independent (single corpus).
+ */
 export function usePosts() {
-  const { locale } = useI18n()
+  const api = useVault()
+  const posts: Post[] = api.notes.map(toPost)
 
   function all(): Post[] {
-    const key = locale.value as SupportedLocale
-    return [...(postsByLocale[key] ?? [])].sort((a, b) =>
-      b.date.localeCompare(a.date),
-    )
+    return [...posts].sort((a, b) => b.date.localeCompare(a.date))
   }
 
   function bySlug(slug: string): Post | undefined {
@@ -148,7 +67,7 @@ export function usePosts() {
   }
 
   function allTags(): string[] {
-    return [...new Set(all().flatMap((p) => p.tags))].sort()
+    return [...new Set(posts.flatMap((p) => p.tags))].sort()
   }
 
   function byTag(tag: string): Post[] {
@@ -158,5 +77,4 @@ export function usePosts() {
   return { all, bySlug, allTags, byTag }
 }
 
-export type { RawPost }
-export { buildPost, estimateReadingTime }
+export { estimateReadingTime }
