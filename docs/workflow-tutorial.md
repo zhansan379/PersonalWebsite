@@ -149,6 +149,34 @@ jobs:
 
 ---
 
+## 推送到指定分支（可选，默认推 `main`）
+
+上面的 workflow 默认都推 `main`（线上跟着变）。如果你想让结果先落在**另一个分支**上（比如先看效果、再合并），改两处即可：
+
+1. 第 2 步 checkout 博客仓库时，指定分支：
+
+   ```yaml
+   - name: Checkout blog repo
+     uses: actions/checkout@v4
+     with:
+       repository: ${{ secrets.BLOG_REPO }}
+       token: ${{ secrets.BLOG_PAT }}
+       ref: blog-sync            # ← 检出这个分支（它必须已存在于博客仓库）
+       path: blog
+   ```
+
+2. 第 4 步末尾，把 push 改到同一个分支：
+
+   ```yaml
+   git -C blog push origin blog-sync
+   ```
+
+> ⚠️ **如果目标分支不存在**：`ref` 要求分支已存在，否则 checkout 直接失败。想让 workflow 自己新建分支就别写 `ref`，改用 `git -C blog push origin HEAD:blog-sync`，GitHub 会自动建远端分支。
+>
+> ⚠️ **Vercel 默认只自动部署主分支（通常 `main`）**：推到别的分支，线上 `/vault` 不会自动更新，除非你在 Vercel 的 **Project Settings → Git** 里把 Production/Preview 分支设成那个名字。
+
+---
+
 ## 常见的坑
 
 - **复制笔记没生效**：99% 是 `src/content/vault` 在博客仓库被 gitignore 了。workflow 的 `git add` 默认忽略被 ignore 的文件，push 了个寂寞。**这个目录必须被 git 跟踪**。
