@@ -82,9 +82,18 @@ const html = computed(() => renderMarkdown(props.source))
 .prose-zh :deep(blockquote) {
   margin: 1.4em 0;
   padding: 0.1em 0 0.1em 1.1em;
-  border-left: 3px solid color-mix(in srgb, currentColor 30%, transparent);
-  color: color-mix(in srgb, currentColor 75%, transparent);
-  font-style: italic;
+  /* 回退：老内核不支持 color-mix() 时，用 currentColor 实线 + 半透明，
+     仍能看出这是引用，而不是和正文混在一起。 */
+  border-left: 3px solid currentColor;
+  opacity: 0.85;
+}
+@supports (color: color-mix(in srgb, currentColor 75%, transparent)) {
+  .prose-zh :deep(blockquote) {
+    border-left-color: color-mix(in srgb, currentColor 30%, transparent);
+    color: color-mix(in srgb, currentColor 75%, transparent);
+    opacity: 1;
+    font-style: italic;
+  }
 }
 .prose-zh :deep(code) {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;

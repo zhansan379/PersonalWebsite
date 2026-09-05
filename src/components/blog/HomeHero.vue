@@ -28,6 +28,14 @@ const copied = ref(false)
 let pillsTimer: number | undefined
 
 onMounted(() => {
+  // 触屏设备（手机/平板）没有鼠标，scrub 不会触发，背景视频会停在首帧（黑屏）。
+  // 这里直接静音自动播放；桌面保持"鼠标拖动取帧"的招牌效果不动。
+  if (window.matchMedia('(pointer: coarse)').matches) {
+    const video = videoRef.value
+    if (video?.play) video.play().catch(() => {
+      /* autoplay blocked —— 停在首帧，属浏览器策略，不报错 */
+    })
+  }
   pillsTimer = window.setTimeout(() => {
     showPills.value = true
   }, 500)
@@ -62,8 +70,12 @@ async function copyEmail(): Promise<void> {
       :style="{ objectPosition: VIDEO_POSITION }"
       :src="VIDEO_SRC"
       muted
+      loop
       playsinline
       preload="auto"
+      x5-video-player-type="h5"
+      x5-playsinline
+      webkit-playsinline
       @seeked="onVideoSeeked"
     ></video>
 
