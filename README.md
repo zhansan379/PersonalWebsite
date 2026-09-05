@@ -28,12 +28,12 @@ Built with Vue 3 + TypeScript + Vite + Tailwind CSS + Vue Router + vue-i18n.
 
 | Path | Description |
 | --- | --- |
-| `/` | Home |
-| `/blog` | Blog index |
-| `/blog/:slug` | Post detail |
-| `/tags` | Tags |
-| `/tags/:tag` | Posts by tag |
-| `/archive` | Archive |
+| `/` | Home (featured notes) |
+| `/tags` | Tags (count-desc, searchable) |
+| `/tags/:tag` | Notes by tag |
+| `/archive` | Archive grouped by time |
+| `/vault` | Vault / knowledge-base directory (searchable) |
+| `/vault/:pathMatch(.*)*` | A single note / canvas |
 | `/about` | About |
 
 ## Content
