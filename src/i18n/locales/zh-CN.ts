@@ -7,6 +7,7 @@ const messages: MessageSchema = {
     openings: '招聘',
     shop: '商店',
     contact: '联系我们',
+    github: 'GitHub',
   },
   intro: {
     line1: '你好，来认识一下 A.R.I.A，',

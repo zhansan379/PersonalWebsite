@@ -9,6 +9,7 @@ export interface MessageSchema {
     openings: string
     shop: string
     contact: string
+    github: string
   }
   intro: {
     line1: string

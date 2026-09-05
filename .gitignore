@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Obsidian 知识库内容：由 npm run sync:vault 本地生成，不入库
+src/content/vault
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

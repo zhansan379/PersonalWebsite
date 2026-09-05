@@ -7,6 +7,7 @@ const messages: MessageSchema = {
     openings: 'Openings',
     shop: 'Shop',
     contact: 'Get in touch',
+    github: 'GitHub',
   },
   intro: {
     line1: 'Hey there, meet A.R.I.A,',
