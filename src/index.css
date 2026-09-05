@@ -1,0 +1,80 @@
+@import 'tailwindcss';
+
+/*
+ * Self-hosted fonts — originally served from db.onlinewebfonts.com.
+ * Downloaded locally as woff2 (+ woff fallback) and referenced from the
+ * `public/` root. Font families are licensed by OnlineWebFonts (CC BY 4.0).
+ */
+@font-face {
+  font-family: 'HelveticaNowDisplay-Medium';
+  src:
+    url('/fonts/heading.woff2') format('woff2'),
+    url('/fonts/heading.woff') format('woff');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HelveticaNowDisplayW01-Rg';
+  src:
+    url('/fonts/body.woff2') format('woff2'),
+    url('/fonts/body.woff') format('woff');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* 思源宋体 (Noto Serif SC) — self-hosted, simplified Chinese. This single
+   file per weight already covers basic Latin + CJK, so no unicode-range
+   subsetting is needed. Applied only when the page is in Chinese. */
+@font-face {
+  font-family: 'Noto Serif SC';
+  src: url('/fonts/noto-serif-sc-chinese-simplified-400-normal.woff2')
+    format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Serif SC';
+  src: url('/fonts/noto-serif-sc-chinese-simplified-600-normal.woff2')
+    format('woff2');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+:root {
+  --font-heading:
+    'HelveticaNowDisplay-Medium', 'Helvetica Neue', Arial, sans-serif;
+  --font-body:
+    'HelveticaNowDisplayW01-Rg', 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Chinese mode: swap in 思源宋体 for the whole page. */
+html[lang='zh-CN'] {
+  --font-heading: 'Noto Serif SC', 'HelveticaNowDisplay-Medium', serif;
+  --font-body: 'Noto Serif SC', 'HelveticaNowDisplayW01-Rg', serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  /* Dark ground so the page doesn't flash white before the video loads */
+  background: #000;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typewriter caret */
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
