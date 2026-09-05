@@ -81,19 +81,21 @@ const html = computed(() => renderMarkdown(props.source))
 /* Quote + code */
 .prose-zh :deep(blockquote) {
   margin: 1.4em 0;
-  padding: 0.1em 0 0.1em 1.1em;
-  /* 回退：老内核不支持 color-mix() 时，用 currentColor 实线 + 半透明，
-     仍能看出这是引用，而不是和正文混在一起。 */
-  border-left: 3px solid currentColor;
-  opacity: 0.85;
+  padding: 0.8em 1.2em;
+  /* 引用：粗左边框 + 柔和底色。刻意不用 color-mix()、不用斜体、不把文字变淡，
+     避免部分手机内核不支持这些特性导致"引用看不见"。中性灰底色明暗主题都可用。 */
+  border-left: 4px solid currentColor;
+  border-radius: 0 8px 8px 0;
+  background: rgba(120, 113, 108, 0.12);
 }
-@supports (color: color-mix(in srgb, currentColor 75%, transparent)) {
-  .prose-zh :deep(blockquote) {
-    border-left-color: color-mix(in srgb, currentColor 30%, transparent);
-    color: color-mix(in srgb, currentColor 75%, transparent);
-    opacity: 1;
-    font-style: italic;
-  }
+.prose-zh :deep(blockquote p) {
+  margin: 0.3em 0;
+}
+.prose-zh :deep(blockquote > :first-child) {
+  margin-top: 0;
+}
+.prose-zh :deep(blockquote > :last-child) {
+  margin-bottom: 0;
 }
 .prose-zh :deep(code) {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
