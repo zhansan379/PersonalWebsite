@@ -22,7 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# 知识库内容不进仓库（真源在 Obsidian，本地 npm run sync:vault 生成）
-# 如需发布 vault，删除下一行并手动跟踪 src/content/vault
-src/content/vault

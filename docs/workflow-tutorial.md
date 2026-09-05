@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     env:                            # 目录全靠这里配 → 改目录只动这一块
       VAULT_WIKI: ${{ vars.VAULT_WIKI || 'wiki' }}        # 源目录（本地默认是 D:/Obsidian/...）
-      VAULT_DEST: blog/synced_content/vault               # 目标目录（要带 blog/ 前缀，因为博客仓库 checkout 在 blog/ 下）
+      VAULT_DEST: blog/src/content/vault              # 目标目录（要带 blog/ 前缀，因为博客仓库 checkout 在 blog/ 下）
     steps:
       # 1. 把知识库仓库(wiki)取下来 => 当前工作目录
       - name: Checkout vault
@@ -115,7 +115,7 @@ jobs:
         run: |
           git -C blog config user.name "obsidian-wiki[bot]"
           git -C blog config user.email "obsidian-wiki[bot]@users.noreply.github.com"
-          git -C blog add -A synced_content/vault
+          git -C blog add -A src/content/vault
           if git -C blog diff --cached --quiet; then
             echo "No changes; skip."; exit 0
           fi
@@ -143,7 +143,7 @@ jobs:
 - **本机手动跑**：`VAULT_WIKI=D:/其它/wiki VAULT_DEST=src/content/别的 node scripts/sync-wiki.mjs`。
 - **workflow 自动跑**：改知识库仓库 Actions 里的 **Variables**（`VAULT_WIKI`），或直接改第 3 步 yml 里 `env:` 块的值。两处写成一样即可。
 
-> 注意：`VAULT_DEST` 必须带 `blog/` 前缀（因为博客仓库 checkout 在 `blog/` 子目录下，脚本相对工作目录解析），第 4 步的 `git -C blog add -A synced_content/vault` 引用的是去掉 `blog/` 后的路径——两处要匹配。另外 `on.push.paths: ['wiki/**']` 那一行是 GitHub 触发规则，**不支持读变量**，必须手写真实的源目录路径。
+> 注意：`VAULT_DEST` 必须带 `blog/` 前缀（因为博客仓库 checkout 在 `blog/` 子目录下，脚本相对工作目录解析），第 4 步的 `git -C blog add -A src/content/vault` 引用的是去掉 `blog/` 后的路径——两处要匹配。另外 `on.push.paths: ['wiki/**']` 那一行是 GitHub 触发规则，**不支持读变量**，必须手写真实的源目录路径。
 
 > ⚠️ **换源目录名时的坑（`paths` 和 `VAULT_WIKI` 必须一起改）**：`paths` 是"触发开关"，`VAULT_WIKI` 是"脚本从哪读"，两者管不同的事——`paths` 决定进不进门，`VAULT_WIKI` 决定进门后往哪走。所以默认没问题（两边都写 `wiki`）；但如果你把 `VAULT_WIKI` 改成别的（比如 `notes`），`paths` 里那行**必须同步改成 `notes/**`**，否则你改 `notes/` 时触发规则看的是 `wiki/`，根本不会启动 workflow，白改。
 
