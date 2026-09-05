@@ -9,17 +9,25 @@ const { all } = usePosts()
 
 type YearGroup = { year: string; months: { month: string; posts: Post[] }[] }
 
+/** 无日期文章的归档分组占位（显示为翻译后的「未标注日期」）。 */
+const UNDATED = '__undated__'
+
 const groups = computed<YearGroup[]>(() => {
   const posts = all()
   const byYear = new Map<string, Map<string, Post[]>>()
+  const undated: Post[] = []
   for (const post of posts) {
+    if (!post.date) {
+      undated.push(post)
+      continue
+    }
     const [y, m] = post.date.split('-')
     if (!byYear.has(y)) byYear.set(y, new Map())
     const months = byYear.get(y)!
     if (!months.has(m)) months.set(m, [])
     months.get(m)!.push(post)
   }
-  return [...byYear.entries()]
+  const result = [...byYear.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([year, months]) => ({
       year,
@@ -27,6 +35,10 @@ const groups = computed<YearGroup[]>(() => {
         .sort((a, b) => b[0].localeCompare(a[0]))
         .map(([month, posts]) => ({ month, posts })),
     }))
+  if (undated.length) {
+    result.push({ year: UNDATED, months: [{ month: UNDATED, posts: undated }] })
+  }
+  return result
 })
 
 function monthLabel(year: string, isoMonth: string): string {
@@ -46,10 +58,15 @@ function monthLabel(year: string, isoMonth: string): string {
 
     <div class="flex flex-col gap-10">
       <section v-for="group in groups" :key="group.year">
-        <h2 class="mb-5 font-heading text-2xl tracking-tight">{{ group.year }}</h2>
+        <h2 class="mb-5 font-heading text-2xl tracking-tight">
+          {{ group.year === UNDATED ? t('archive.undated') : group.year }}
+        </h2>
         <div class="flex flex-col gap-6">
           <section v-for="m in group.months" :key="m.month">
-            <h3 class="mb-3 text-sm font-medium uppercase tracking-widest text-muted dark:text-muted-dark">
+            <h3
+              v-if="m.month !== UNDATED"
+              class="mb-3 text-sm font-medium uppercase tracking-widest text-muted dark:text-muted-dark"
+            >
               {{ monthLabel(group.year, m.month) }}
             </h3>
             <ul class="flex flex-col divide-y divide-border dark:divide-border-dark">

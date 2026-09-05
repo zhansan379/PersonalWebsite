@@ -41,6 +41,7 @@ export interface MessageSchema {
   }
   archive: {
     subtitle: string
+    undated: string
   }
   vault: {
     title: string

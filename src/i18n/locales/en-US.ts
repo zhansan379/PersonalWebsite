@@ -39,6 +39,7 @@ const messages: MessageSchema = {
   },
   archive: {
     subtitle: 'All posts, grouped by time.',
+    undated: 'Undated',
   },
   vault: {
     title: 'Knowledge Base',
