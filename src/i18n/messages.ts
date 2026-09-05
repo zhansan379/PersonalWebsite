@@ -18,6 +18,15 @@ export interface MessageSchema {
     archive: string
     about: string
     vault: string
+    projects: string
+  }
+  projects: {
+    heading: string
+    live: string
+    os: string
+    desc1: string
+    desc2: string
+    desc3: string
   }
   footer: {
     tagline: string

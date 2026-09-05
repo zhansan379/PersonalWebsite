@@ -25,6 +25,7 @@ const navItems = computed(() => [
   { to: { name: 'tags' }, label: t('blogNav.tags') },
   { to: { name: 'archive' }, label: t('blogNav.archive') },
   { to: { name: 'vault-index' }, label: t('blogNav.vault') },
+  { to: { name: 'projects' }, label: t('blogNav.projects') },
   { to: { name: 'about' }, label: t('blogNav.about') },
 ])
 

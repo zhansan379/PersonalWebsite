@@ -16,6 +16,15 @@ const messages: MessageSchema = {
     archive: '归档',
     about: '关于',
     vault: '知识库',
+    projects: '开源项目',
+  },
+  projects: {
+    heading: 'Project',
+    live: 'Project Link',
+    os: '开源项目',
+    desc1: '会和你说活的数字人：能听、能想、能答、能打岔，看得见你在干嘛，还能接外部工具箱。',
+    desc2: 'BOSS 直聘求职自动化工具：爬取岗位 → 解析简历 → 智能匹配 → 可视化报告 → 一键生成优化简历 → 自动投递。',
+    desc3: '本博客网站，基于 Vue 3、TypeScript、Vite 与 Tailwind 构建，支持中英文与深浅色主题。',
   },
   footer: {
     tagline: '记录思考，构建事物。',

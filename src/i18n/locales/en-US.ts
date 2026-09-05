@@ -16,6 +16,15 @@ const messages: MessageSchema = {
     archive: 'Archive',
     about: 'About',
     vault: 'Wiki',
+    projects: 'Projects',
+  },
+  projects: {
+    heading: 'Project',
+    live: 'Project Link',
+    os: 'Open Source',
+    desc1: 'An interactive digital-human avatar that hears, thinks, answers, and can be interrupted — with camera awareness and pluggable MCP tools.',
+    desc2: 'A BOSS jobs automation tool: crawl listings, parse resumes, smart-match, generate visual reports, make optimized resumes, and auto-apply.',
+    desc3: 'This blog site, built with Vue 3, TypeScript, Vite, and Tailwind, with i18n and light/dark themes.',
   },
   footer: {
     tagline: 'Think, write, build.',

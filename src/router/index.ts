@@ -34,6 +34,11 @@ export const router = createRouter({
           component: () => import('../views/AboutView.vue'),
         },
         {
+          path: 'projects',
+          name: 'projects',
+          component: () => import('../views/ProjectsView.vue'),
+        },
+        {
           path: 'vault',
           name: 'vault-index',
           component: () => import('../views/VaultIndexView.vue'),
