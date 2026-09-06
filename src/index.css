@@ -88,6 +88,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Gradient display headline (e.g. the "Project" section title).
+   Uses the theme foreground→secondary tokens so it adapts to dark mode. */
+.hero-heading {
+  background-image: linear-gradient(
+    180deg,
+    var(--color-foreground),
+    var(--color-secondary)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 /* Typewriter caret */
 @keyframes blink {
   0%,

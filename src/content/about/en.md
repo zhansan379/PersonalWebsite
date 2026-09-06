@@ -2,11 +2,12 @@
 
 Hi, I am Goto. This is where I share thoughts on full-stack development, design, and engineering.
 
-## What I do
+## What I can do
 
-- Build web apps with Vue 3, TypeScript, Vite, and Tailwind
-- Care about interface detail, performance, and maintainability
-- Occasionally write journals and design notes
+- Backend: Java (Spring Boot / Spring Cloud microservices), with solid MySQL & SQL tuning, plus Redis, RabbitMQ, Nginx, and Docker
+- AI / LLM apps: Python with LangChain / LangGraph for Agents & RAG, familiar with Dify and LangFuse
+- Frontend: Vue 3 web apps, focused on interface detail, performance, and maintainability
+- Tooling & workflows: Git, Maven, and containerized deployments; daily Claude Code / Cursor, following SDD / BMAD paradigms
 
 ## Open Source
 

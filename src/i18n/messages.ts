@@ -18,6 +18,15 @@ export interface MessageSchema {
     archive: string
     about: string
     vault: string
+    projects: string
+  }
+  projects: {
+    heading: string
+    live: string
+    os: string
+    desc1: string
+    desc2: string
+    desc3: string
   }
   footer: {
     tagline: string
@@ -48,6 +57,11 @@ export interface MessageSchema {
     subtitle: string
     directory: string
     onThisPage: string
+    tabs: {
+      directory: string
+      timeline: string
+      tags: string
+    }
     notes: string
     canvases: string
     search: string
