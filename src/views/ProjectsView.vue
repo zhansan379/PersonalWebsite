@@ -32,6 +32,18 @@ const projects = computed<Project[]>(() => [
       col2: '/projects/boss-img7.png',
     },
   },
+  {
+    id: 3,
+    name: 'codereview-ai',
+    category: t('projects.os'),
+    description: t('projects.desc4'),
+    link: 'https://github.com/zhansan379/codereview-ai',
+    images: {
+      col1_1: '/projects/codereview-1.png',
+      col1_2: '/projects/codereview-2.png',
+      col2: '/projects/codereview-3.png',
+    },
+  },
 ])
 </script>
 

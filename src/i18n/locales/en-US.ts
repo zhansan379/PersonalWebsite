@@ -25,6 +25,7 @@ const messages: MessageSchema = {
     desc1: 'An interactive digital-human avatar that hears, thinks, answers, and can be interrupted — with camera awareness and pluggable MCP tools.',
     desc2: 'A BOSS jobs automation tool: crawl listings, parse resumes, smart-match, generate visual reports, make optimized resumes, and auto-apply.',
     desc3: 'This blog site, built with Vue 3, TypeScript, Vite, and Tailwind, with i18n and light/dark themes.',
+    desc4: 'Self-hosted AI code review: accepts GitHub/GitLab webhooks, outputs line-level inline comments. Supports LiteLLM models, agentic reasoning layer, and Semgrep analysis.',
   },
   footer: {
     tagline: 'Think, write, build.',
