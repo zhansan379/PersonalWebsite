@@ -44,6 +44,8 @@ export interface VaultNote {
   tags: string[]
   /** 是否标记为首页「精选」（frontmatter.featured）。 */
   featured: boolean
+  /** frontmatter `mindmap-plugin: basic` → 默认以思维导图渲染。 */
+  mindmap: boolean
   created?: string
   updated?: string
   /** 完整原始内容（含 frontmatter）。 */
@@ -96,12 +98,13 @@ interface Frontmatter {
   created?: string
   updated?: string
   featured: boolean
+  mindmap: boolean
   body: string
 }
 
 function parseFrontmatter(raw: string): Frontmatter {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(raw)
-  if (!match) return { tags: [], featured: false, body: raw }
+  if (!match) return { tags: [], featured: false, mindmap: false, body: raw }
 
   const attrs: Record<string, string | string[]> = {}
   let currentList: string | null = null
@@ -150,6 +153,7 @@ function parseFrontmatter(raw: string): Frontmatter {
     created: typeof attrs.created === 'string' ? attrs.created : undefined,
     updated: typeof attrs.updated === 'string' ? attrs.updated : undefined,
     featured: attrs.featured === 'true',
+    mindmap: attrs['mindmap-plugin'] === 'basic',
     body: raw.slice(match[0].length).trim(),
   }
 }
@@ -196,6 +200,7 @@ for (const rel of noteIds) {
     title: fm.title ?? firstHeading(fm.body) ?? id,
     tags: fm.tags,
     featured: fm.featured,
+    mindmap: fm.mindmap,
     created: fm.created,
     updated: fm.updated,
     raw,

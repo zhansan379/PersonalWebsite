@@ -78,5 +78,7 @@ export interface MessageSchema {
     copy: string
     copied: string
     back: string
+    mindmapView: string
+    markdownView: string
   }
 }

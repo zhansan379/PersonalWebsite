@@ -7,6 +7,7 @@ import { slugify } from '../lib/slugify'
 import VaultTree from '../components/vault/VaultTree.vue'
 import NoteBody from '../components/vault/NoteBody.vue'
 import CanvasView from '../components/vault/CanvasView.vue'
+import MindmapView from '../components/vault/MindmapView.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -37,6 +38,14 @@ const toggleTree = (): void => {
   treeOpen.value = !treeOpen.value
   localStorage.setItem('vault-tree-open', treeOpen.value ? 'open' : 'closed')
 }
+
+// 思维导图笔记：默认导图视图，可切换回 markdown（选择持久化）。
+const showMindmap = ref(localStorage.getItem('vault-mindmap-view') !== 'md')
+const toggleMindmap = (): void => {
+  showMindmap.value = !showMindmap.value
+  localStorage.setItem('vault-mindmap-view', showMindmap.value ? 'map' : 'md')
+}
+const mindmapActive = computed(() => !!note.value?.mindmap && showMindmap.value)
 
 // 复制正文（markdown 原文），带按钮反馈。
 const copied = ref(false)
@@ -163,7 +172,7 @@ function scrollToId(id: string): void {
     <!-- 笔记视图 -->
     <template v-else-if="note">
       <!-- 移动端本页目录 -->
-      <details v-if="toc.length" class="mb-4 rounded-xl border border-border lg:hidden dark:border-border-dark">
+      <details v-if="toc.length && !mindmapActive" class="mb-4 rounded-xl border border-border lg:hidden dark:border-border-dark">
         <summary class="cursor-pointer select-none px-4 py-3 text-sm font-medium">{{ t('vault.onThisPage') }}</summary>
         <div class="border-t border-border dark:border-border-dark">
           <ul class="space-y-0.5 p-2 text-sm">
@@ -196,27 +205,40 @@ function scrollToId(id: string): void {
         <article class="prose-zh min-w-0 flex-1 max-w-none">
           <div class="mb-1 flex items-start justify-between gap-3">
             <h1 class="font-heading text-3xl font-semibold tracking-tight">{{ note.title }}</h1>
-            <button
-              type="button"
-              class="mt-1 shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-accent hover:text-accent dark:border-border-dark dark:text-secondary-dark"
-              :class="copied ? 'text-accent' : ''"
-              @click="copyMarkdown"
-            >
-              {{ copied ? t('vault.copied') : t('vault.copy') }}
-            </button>
+            <div class="mt-1 flex shrink-0 gap-2">
+              <button
+                v-if="note.mindmap"
+                type="button"
+                class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-accent hover:text-accent dark:border-border-dark dark:text-secondary-dark"
+                @click="toggleMindmap"
+              >
+                {{ showMindmap ? t('vault.markdownView') : t('vault.mindmapView') }}
+              </button>
+              <button
+                type="button"
+                class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-accent hover:text-accent dark:border-border-dark dark:text-secondary-dark"
+                :class="copied ? 'text-accent' : ''"
+                @click="copyMarkdown"
+              >
+                {{ copied ? t('vault.copied') : t('vault.copy') }}
+              </button>
+            </div>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted dark:text-muted-dark">
             <template v-if="note.created"><span>{{ t('vault.created') }} {{ note.created }}</span></template>
             <template v-if="note.updated"><span>{{ t('vault.updated') }} {{ note.updated }}</span></template>
             <span v-for="tag in note.tags" :key="tag" class="rounded-full border border-border px-2 py-0.5 text-xs dark:border-border-dark">#{{ tag }}</span>
           </div>
-          <div class="mt-6">
+          <div v-if="mindmapActive" class="mt-6 h-[72vh]">
+            <MindmapView :source="note.body" />
+          </div>
+          <div v-else class="mt-6">
             <NoteBody :source="note.body" :current-id="note.id" />
           </div>
         </article>
 
         <!-- 右侧本页目录（桌面） -->
-        <aside v-if="toc.length" class="sticky top-[5.5rem] hidden w-[200px] shrink-0 lg:block">
+        <aside v-if="toc.length && !mindmapActive" class="sticky top-[5.5rem] hidden w-[200px] shrink-0 lg:block">
           <h2 class="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted dark:text-muted-dark">{{ t('vault.onThisPage') }}</h2>
           <ul class="max-h-[calc(100vh-8rem)] space-y-1 overflow-y-auto text-sm">
             <li v-for="item in toc" :key="item.id">

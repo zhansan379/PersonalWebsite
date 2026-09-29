@@ -76,6 +76,8 @@ const messages: MessageSchema = {
     copy: '复制正文',
     copied: '已复制',
     back: '返回上一页',
+    mindmapView: '思维导图',
+    markdownView: 'Markdown',
   },
 }
 

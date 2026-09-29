@@ -76,6 +76,8 @@ const messages: MessageSchema = {
     copy: 'Copy',
     copied: 'Copied',
     back: 'Back',
+    mindmapView: 'Mind map',
+    markdownView: 'Markdown',
   },
 }
 
