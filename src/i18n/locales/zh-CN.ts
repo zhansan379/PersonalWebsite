@@ -79,6 +79,10 @@ const messages: MessageSchema = {
     mindmapView: '思维导图',
     markdownView: 'Markdown',
   },
+  comments: {
+    title: '评论',
+    manage: '管理评论',
+  },
   chat: {
     title: '知识库助手',
     open: '打开知识库助手',

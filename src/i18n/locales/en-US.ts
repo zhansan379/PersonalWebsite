@@ -79,6 +79,10 @@ const messages: MessageSchema = {
     mindmapView: 'Mind map',
     markdownView: 'Markdown',
   },
+  comments: {
+    title: 'Comments',
+    manage: 'Manage comments',
+  },
   chat: {
     title: 'Knowledge Assistant',
     open: 'Open knowledge assistant',

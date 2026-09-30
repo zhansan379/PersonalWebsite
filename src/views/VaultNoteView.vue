@@ -8,6 +8,7 @@ import VaultTree from '../components/vault/VaultTree.vue'
 import NoteBody from '../components/vault/NoteBody.vue'
 import CanvasView from '../components/vault/CanvasView.vue'
 import MindmapView from '../components/vault/MindmapView.vue'
+import GiscusComments from '../components/comments/GiscusComments.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -25,6 +26,12 @@ const currentId = computed(() => {
   if (Array.isArray(p)) return p.join('/')
   return String(p ?? '')
 })
+
+// giscus 创建的 Discussion 标题即笔记 id，按它筛选可直接定位到本页对应的讨论
+const discussionsManageUrl = computed(
+  () =>
+    `https://github.com/zhansan379/PersonalWebsite/discussions?discussions_q=${encodeURIComponent(currentId.value)}`,
+)
 
 const isCanvas = computed(() => currentId.value.endsWith('.canvas'))
 const note = computed(() => noteMap.get(currentId.value) ?? undefined)
@@ -254,6 +261,21 @@ function scrollToId(id: string): void {
           </ul>
         </aside>
       </div>
+
+      <!-- 评论区（giscus，GitHub 登录；term 用笔记稳定 id） -->
+      <section class="mt-12 border-t border-border pt-8 dark:border-border-dark">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <h2 class="font-heading text-lg font-semibold">{{ t('comments.title') }}</h2>
+          <!-- giscus 组件内不支持编辑/删除，跳到按本笔记筛选的 Discussions 页管理 -->
+          <a
+            :href="discussionsManageUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="shrink-0 text-sm text-muted transition-colors hover:text-accent dark:text-muted-dark"
+          >{{ t('comments.manage') }} ↗</a>
+        </div>
+        <GiscusComments :term="currentId" />
+      </section>
     </template>
 
     <!-- 未找到 -->

@@ -81,6 +81,10 @@ export interface MessageSchema {
     mindmapView: string
     markdownView: string
   }
+  comments: {
+    title: string
+    manage: string
+  }
   chat: {
     title: string
     open: string
