@@ -81,4 +81,45 @@ export interface MessageSchema {
     mindmapView: string
     markdownView: string
   }
+  chat: {
+    title: string
+    open: string
+    expand: string
+    collapse: string
+    placeholder: string
+    send: string
+    stop: string
+    retry: string
+    clear: string
+    settings: string
+    back: string
+    autoSaved: string
+    provider: string
+    model: string
+    baseURL: string
+    apiKey: string
+    apiKeyPlaceholder: string
+    getKey: string
+    temperature: string
+    mode: string
+    modeAuto: string
+    modeServer: string
+    modeDirect: string
+    serverOn: string
+    serverOff: string
+    serverChecking: string
+    recheck: string
+    privacyNote: string
+    clearKey: string
+    sources: string
+    reading: string
+    greeting: string
+    example1: string
+    example2: string
+    example3: string
+    errorGeneric: string
+    keyMissing: string
+    serverDown: string
+    goSettings: string
+  }
 }
