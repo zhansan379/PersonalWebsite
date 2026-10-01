@@ -11,8 +11,6 @@ created: 2026-09-09
 updated: 2026-09-27
 ---
 
-# GitHub Pull Request 使用指南
-
 > 一句话概述：PR 是 GitHub 平台为分支创建的**协作管理工单**（不是 Git 原生命令）——创建走网页/`gh` CLI，之后分支上的每次 push 都会自动同步进 PR 时间线。
 
 ## 一、创建 Pull Request
