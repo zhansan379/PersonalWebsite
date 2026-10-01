@@ -12,6 +12,7 @@
     "verify:chat": "node scripts/_verify-chat.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "@vueuse/core": "^13.9.0",
     "gsap": "^3.15.0",
     "marked": "^18.0.11",
