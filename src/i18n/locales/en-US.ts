@@ -73,6 +73,8 @@ const messages: MessageSchema = {
     created: 'Created',
     updated: 'Updated',
     openCanvas: 'Canvas',
+    htmlPages: 'HTML pages',
+    openHtml: 'HTML',
     copy: 'Copy',
     copied: 'Copied',
     back: 'Back',

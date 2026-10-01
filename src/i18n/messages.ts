@@ -75,6 +75,8 @@ export interface MessageSchema {
     created: string
     updated: string
     openCanvas: string
+    htmlPages: string
+    openHtml: string
     copy: string
     copied: string
     back: string

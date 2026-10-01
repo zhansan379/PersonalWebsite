@@ -49,6 +49,9 @@ function linkFor(id: string) {
         <rect x="2" y="2" width="12" height="12" rx="1.5" />
         <path d="M2.5 8h11M8 2.5v11" stroke-linecap="round" />
       </svg>
+      <svg v-else-if="node.type === 'html'" class="h-3.5 w-3.5 shrink-0 text-accent" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m5 5-3 3 3 3" /><path d="m11 5 3 3-3 3" />
+      </svg>
       <span class="truncate">{{ node.name }}</span>
     </RouterLink>
   </li>

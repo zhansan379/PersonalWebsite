@@ -27,6 +27,12 @@ const canvasModules = import.meta.glob('../content/vault/**/*.canvas', {
   eager: true,
 }) as Record<string, string>
 
+const htmlModules = import.meta.glob('../content/vault/**/*.html', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
 /** vault 内一件可寻址对象（一篇笔记或一个 canvas）。 */
 export type VaultItemKind = 'note' | 'canvas'
 
@@ -76,7 +82,7 @@ export interface CanvasData {
   }>
 }
 
-export type VaultTreeNodeType = 'dir' | 'note' | 'canvas'
+export type VaultTreeNodeType = 'dir' | 'note' | 'canvas' | 'html'
 export interface VaultTreeNode {
   type: VaultTreeNodeType
   name: string
@@ -233,6 +239,12 @@ for (const key of Object.keys(canvasModules)) {
   }
 }
 
+// HTML 笔记：id 保留 `.html` 扩展名（与 canvas 同一约定），详情页用 iframe srcdoc 渲染。
+const htmlMap = new Map<string, string>()
+for (const key of Object.keys(htmlModules)) {
+  htmlMap.set(toVaultRel(key), htmlModules[key])
+}
+
 // ---------------------------------------------------------------------------
 // 目录树
 // ---------------------------------------------------------------------------
@@ -240,7 +252,7 @@ function insertNode(
   children: VaultTreeNode[],
   segments: string[],
   id: string,
-  leafType: 'note' | 'canvas',
+  leafType: 'note' | 'canvas' | 'html',
 ): void {
   const [head, ...rest] = segments
   if (rest.length === 0) {
@@ -271,6 +283,9 @@ for (const note of noteMap.values()) {
 for (const canvasId of canvasMap.keys()) {
   insertNode(treeRoot, canvasId.split('/'), canvasId, 'canvas')
 }
+for (const htmlId of htmlMap.keys()) {
+  insertNode(treeRoot, htmlId.split('/'), htmlId, 'html')
+}
 sortTree(treeRoot)
 
 // ---------------------------------------------------------------------------
@@ -281,6 +296,7 @@ export interface VaultApi {
   root: VaultTreeNode[]
   assetMap: Map<string, string>
   canvasMap: Map<string, CanvasData>
+  htmlMap: Map<string, string>
   noteMap: Map<string, VaultNote>
   resolveNote: (target: string) => VaultNote | undefined
 }
@@ -291,6 +307,7 @@ function buildApi(): VaultApi {
     root: treeRoot,
     assetMap,
     canvasMap,
+    htmlMap,
     noteMap,
     resolveNote: (target) => noteMap.get(target),
   }

@@ -13,7 +13,7 @@ import GiscusComments from '../components/comments/GiscusComments.vue'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { root, noteMap, canvasMap } = useVault()
+const { root, noteMap, canvasMap, htmlMap } = useVault()
 
 // 返回上一个页面：有历史则回退，否则回知识库首页（适配直接打开深链的场景）。
 function goBack(): void {
@@ -34,8 +34,50 @@ const discussionsManageUrl = computed(
 )
 
 const isCanvas = computed(() => currentId.value.endsWith('.canvas'))
+const isHtml = computed(() => currentId.value.endsWith('.html'))
 const note = computed(() => noteMap.get(currentId.value) ?? undefined)
 const canvasData = computed(() => canvasMap.get(currentId.value) ?? null)
+const htmlSource = computed(() => htmlMap.get(currentId.value) ?? null)
+
+// HTML 笔记按内容实际高度渲染 iframe（无内部滚动条）。sandbox 独立源下父页无法
+// 直接测量 iframe 文档高度，故注入一段脚本：监听内容尺寸变化，postMessage 汇报高度。
+// 消息用 e.source === iframe.contentWindow 校验来源，只信任本页 iframe。
+const htmlFrame = ref<HTMLIFrameElement | null>(null)
+const htmlHeight = ref(480)
+
+// 注入片段做两件事：
+// 1. html/body 禁用溢出滚动——高度由父页接管，iframe 内部永远不需要滚动条，
+//    否则测量取整差 1–2px 时 Windows 下会显示一条灰色滚动条轨道；
+// 2. 监听内容尺寸变化，postMessage 把文档高度汇报给父页。
+const AUTO_RESIZE_SNIPPET =
+  '<script>(function(){var last=-1;' +
+  'document.documentElement.style.overflow="hidden";' +
+  'function h(){var b=document.body;if(b)b.style.overflow="hidden";' +
+  'return Math.max(b?b.scrollHeight:0,document.documentElement.scrollHeight)}' +
+  'function send(){var v=h();if(Math.abs(v-last)>1){last=v;parent.postMessage({__vaultHtmlHeight:v},"*")}}' +
+  'window.addEventListener("load",send);' +
+  'try{new ResizeObserver(send).observe(document.documentElement)}catch(e){}' +
+  'setTimeout(send,0)' +
+  '})();<\/script>'
+
+const htmlDoc = computed(() => {
+  const src = htmlSource.value
+  if (!src) return null
+  return /<\/body>/i.test(src)
+    ? src.replace(/<\/body>/i, AUTO_RESIZE_SNIPPET + '</body>')
+    : src + AUTO_RESIZE_SNIPPET
+})
+
+function onHtmlResizeMsg(e: MessageEvent): void {
+  if (e.source !== htmlFrame.value?.contentWindow) return
+  const h = (e.data as { __vaultHtmlHeight?: unknown } | null)?.__vaultHtmlHeight
+  // +2px 缓冲：内部已 overflow:hidden，若测量偏小 1px 会裁到内容底边
+  if (typeof h === 'number' && h > 0 && h < 20000) htmlHeight.value = Math.ceil(h) + 2
+}
+onMounted(() => window.addEventListener('message', onHtmlResizeMsg))
+onBeforeUnmount(() => window.removeEventListener('message', onHtmlResizeMsg))
+// 切换 HTML 笔记时先回到初始高度，等下一篇汇报后再撑开
+watch(currentId, () => (htmlHeight.value = 480))
 
 const activeId = computed(() => currentId.value)
 
@@ -153,7 +195,7 @@ function scrollToId(id: string): void {
       </button>
     </div>
 
-    <!-- 移动端目录折叠（笔记与 canvas 都提供，方便切换文件） -->
+    <!-- 移动端目录折叠（笔记、canvas、HTML 页都提供，方便切换文件） -->
     <details class="mb-4 rounded-xl border border-border lg:hidden dark:border-border-dark">
       <summary class="cursor-pointer select-none px-4 py-3 text-sm font-medium">{{ t('vault.directory') }}</summary>
       <div class="max-h-[50vh] overflow-y-auto border-t border-border dark:border-border-dark">
@@ -170,8 +212,50 @@ function scrollToId(id: string): void {
         <h1 class="truncate font-heading text-2xl font-semibold">{{ (currentId ?? '').split('/').pop() }}</h1>
         <span class="rounded-full border border-accent/30 px-2.5 py-0.5 text-xs text-accent">{{ t('vault.openCanvas') }}</span>
       </header>
-      <div v-if="canvasData" class="h-[72vh]">
-        <CanvasView :data="canvasData" />
+      <div v-if="canvasData" class="flex items-start gap-8">
+        <!-- 左侧目录树（桌面，可折叠并独立滚动）：顶部「收起目录」按钮控制 -->
+        <aside
+          v-show="treeOpen"
+          class="sticky top-[5.5rem] hidden w-[280px] shrink-0 lg:block"
+        >
+          <div class="max-h-[calc(100vh-6.5rem)] overflow-y-auto rounded-xl border border-border dark:border-border-dark">
+            <VaultTree :nodes="root" :active-id="activeId" />
+          </div>
+        </aside>
+        <div class="h-[72vh] min-w-0 flex-1">
+          <CanvasView :data="canvasData" />
+        </div>
+      </div>
+      <p v-else class="text-sm text-muted dark:text-muted-dark">{{ t('vault.notFound') }}</p>
+    </template>
+
+    <!-- HTML 笔记视图：iframe srcdoc 嵌入预览；sandbox 独立源，脚本可运行但碰不到主站 -->
+    <template v-else-if="isHtml">
+      <header class="mb-4 flex items-center gap-3">
+        <svg class="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m8 6-6 6 6 6" /><path d="m16 6 6 6-6 6" />
+        </svg>
+        <h1 class="truncate font-heading text-2xl font-semibold">{{ (currentId ?? '').split('/').pop() }}</h1>
+        <span class="rounded-full border border-accent/30 px-2.5 py-0.5 text-xs text-accent">{{ t('vault.openHtml') }}</span>
+      </header>
+      <div v-if="htmlDoc" class="flex items-start gap-8">
+        <!-- 左侧目录树（桌面，可折叠并独立滚动）：顶部「收起目录」按钮控制 -->
+        <aside
+          v-show="treeOpen"
+          class="sticky top-[5.5rem] hidden w-[280px] shrink-0 lg:block"
+        >
+          <div class="max-h-[calc(100vh-6.5rem)] overflow-y-auto rounded-xl border border-border dark:border-border-dark">
+            <VaultTree :nodes="root" :active-id="activeId" />
+          </div>
+        </aside>
+        <iframe
+          ref="htmlFrame"
+          :srcdoc="htmlDoc"
+          sandbox="allow-scripts allow-popups allow-modals allow-downloads"
+          class="min-w-0 flex-1 rounded-xl border border-border bg-white dark:border-border-dark"
+          :style="{ height: htmlHeight + 'px' }"
+          :title="currentId"
+        ></iframe>
       </div>
       <p v-else class="text-sm text-muted dark:text-muted-dark">{{ t('vault.notFound') }}</p>
     </template>

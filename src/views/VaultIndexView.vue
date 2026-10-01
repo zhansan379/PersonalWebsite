@@ -10,7 +10,7 @@ import TagCloud from '../components/blog/TagCloud.vue'
 const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { root, notes, canvasMap } = useVault()
+const { root, notes, canvasMap, htmlMap } = useVault()
 const { all, allTags } = usePosts()
 
 // 三种浏览方式：目录树 / 按时间 / 按标签（search 为跨模式的全局搜索）
@@ -31,10 +31,11 @@ function selectMode(next: BrowseMode): void {
 const counts = computed(() => ({
   notes: notes.length,
   canvases: canvasMap.size,
+  htmlPages: htmlMap.size,
 }))
 
-// 知识库完全为空（无笔记也无画布）时展示整页空状态。
-const isEmpty = computed(() => notes.length === 0 && canvasMap.size === 0)
+// 知识库完全为空（无笔记、画布和 HTML 页面）时展示整页空状态。
+const isEmpty = computed(() => notes.length === 0 && canvasMap.size === 0 && htmlMap.size === 0)
 
 const canvasList = computed(() =>
   [...canvasMap.entries()].map(([id]) => ({
@@ -165,6 +166,9 @@ const tabItems = computed(() => [
         </span>
         <span class="rounded-full border border-border bg-zinc-50 px-3 py-1 font-mono dark:border-border-dark dark:bg-zinc-900">
           {{ counts.canvases }} {{ t('vault.canvases') }}
+        </span>
+        <span v-if="counts.htmlPages" class="rounded-full border border-border bg-zinc-50 px-3 py-1 font-mono dark:border-border-dark dark:bg-zinc-900">
+          {{ counts.htmlPages }} {{ t('vault.htmlPages') }}
         </span>
       </div>
 

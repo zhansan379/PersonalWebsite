@@ -73,6 +73,8 @@ const messages: MessageSchema = {
     created: '创建',
     updated: '更新',
     openCanvas: '画布',
+    htmlPages: 'HTML 页面',
+    openHtml: 'HTML',
     copy: '复制正文',
     copied: '已复制',
     back: '返回上一页',
