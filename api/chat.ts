@@ -54,10 +54,57 @@ interface ChatRequestBody {
 // ---------------------------------------------------------------------------
 // 配置与常量
 // ---------------------------------------------------------------------------
-const ALLOWED_TOOL = 'read_note'
 const MAX_MESSAGES = 40
-const MAX_CONTENT_CHARS = 4000
-const MAX_BODY_BYTES = 64 * 1024
+// read_note 分段返回单段最长 6000 字符，加上标题/进度行仍在 16000 内；
+// 前端另有工具结果压缩，正常会话远低于此上限（纯滥用防护）。
+const MAX_CONTENT_CHARS = 16000
+const MAX_BODY_BYTES = 512 * 1024
+
+/** 工具白名单：schema 由服务端固定，不信客户端（与 src/lib/vaultTools.ts 一致）。 */
+const ALLOWED_TOOLS: Record<string, ToolDef> = {
+  search_notes: {
+    name: 'search_notes',
+    description:
+      'Search knowledge-base notes by keywords. Returns matching note ids, ' +
+      'titles and snippets. Use before read_note to locate relevant notes.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Keywords, e.g. "vue 响应式"' },
+        limit: { type: 'number', description: 'Max results, default 8, max 20' },
+      },
+      required: ['query'],
+    },
+  },
+  list_notes: {
+    name: 'list_notes',
+    description:
+      'Browse the knowledge-base catalog. Without dir, returns a top-level ' +
+      'folder overview; with dir, lists notes (id/title/tags/summary) under it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        dir: { type: 'string', description: 'Folder path, e.g. "前端开发". Omit for overview.' },
+      },
+    },
+  },
+  read_note: {
+    name: 'read_note',
+    description:
+      'Read a knowledge-base note by id. Long notes are returned in segments: ' +
+      'use offset/length to continue, or heading to read one section only.',
+    parameters: {
+      type: 'object',
+      properties: {
+        note_id: { type: 'string', description: 'Note id, e.g. "前端开发/vue/xxx"' },
+        offset: { type: 'number', description: 'Start char offset, default 0' },
+        length: { type: 'number', description: 'Chars to read, default 4000, max 6000' },
+        heading: { type: 'string', description: 'Read only the section with this heading' },
+      },
+      required: ['note_id'],
+    },
+  },
+}
 
 const DEFAULT_BASE: Record<string, string> = {
   openai: 'https://api.openai.com/v1',
@@ -117,20 +164,9 @@ export default async function handler(req: Request): Promise<Response> {
       return json({ error: 'message content too long' }, 400)
     }
   }
-  // 工具白名单：只放行 read_note，schema 由服务端固定，不信客户端
-  const tools: ToolDef[] = (body.tools ?? []).some((t) => t.name === ALLOWED_TOOL)
-    ? [
-        {
-          name: ALLOWED_TOOL,
-          description: 'Read the full content of a knowledge-base note by its id.',
-          parameters: {
-            type: 'object',
-            properties: { note_id: { type: 'string' } },
-            required: ['note_id'],
-          },
-        },
-      ]
-    : []
+  // 只放行白名单内、客户端确实声明了的工具，schema 以服务端为准
+  const requested = new Set((body.tools ?? []).map((t) => t.name))
+  const tools: ToolDef[] = Object.values(ALLOWED_TOOLS).filter((t) => requested.has(t.name))
 
   const maxTokensCap = parseInt(env('CHAT_MAX_TOKENS') || '2048', 10) || 2048
   const maxTokens = Math.min(body.maxTokens ?? maxTokensCap, maxTokensCap)
@@ -280,16 +316,22 @@ function fetchAnthropic(
     body: JSON.stringify({
       model: cfg.model,
       max_tokens: cfg.maxTokens,
-      ...(system ? { system } : {}),
+      // system（知识库目录）与工具定义标记 ephemeral，命中上游 prompt cache
+      ...(system
+        ? {
+            system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+          }
+        : {}),
       messages,
       stream: true,
       ...(body.temperature !== undefined ? { temperature: body.temperature } : {}),
       ...(tools.length
         ? {
-            tools: tools.map((t) => ({
+            tools: tools.map((t, i) => ({
               name: t.name,
               description: t.description,
               input_schema: t.parameters,
+              ...(i === tools.length - 1 ? { cache_control: { type: 'ephemeral' } } : {}),
             })),
           }
         : {}),

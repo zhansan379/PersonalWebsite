@@ -40,6 +40,44 @@ try {
   ok(bad.startsWith('ERROR'), '未知 id 返回 ERROR')
   ok(bad.includes(first.id), 'ERROR 中含可用 id 列表')
 
+  // 4b. read_note 分段：length 截断 + 续读提示 + offset 衔接
+  const seg1 = tools.executeTool('read_note', JSON.stringify({ note_id: first.id, length: 500 }))
+  ok(seg1.includes('共 ') && seg1.includes('字'), '分段读取含进度信息')
+  const noteLen = api.noteMap.get(first.id).body.length
+  if (noteLen > 500) {
+    ok(seg1.includes('继续阅读'), '截断时给出续读提示')
+    const seg2 = tools.executeTool(
+      'read_note',
+      JSON.stringify({ note_id: first.id, offset: 500, length: 500 }),
+    )
+    ok(seg2.includes('第 500–'), 'offset 续读起点正确')
+  }
+
+  // 4c. read_note 按标题读节：不存在的标题 → 错误中列出可用标题
+  const byHeading = tools.executeTool(
+    'read_note',
+    JSON.stringify({ note_id: first.id, heading: '不存在的标题xyz' }),
+  )
+  ok(byHeading.startsWith('ERROR'), '未知标题返回 ERROR')
+
+  // 4d. search_notes：标题里的词应命中；乱码应空手而归
+  const term = first.title.replace(/[\s/\\:：].*$/, '').slice(0, 4)
+  const hits = tools.executeTool('search_notes', JSON.stringify({ query: term }))
+  ok(hits.includes(first.id), `search_notes 命中标题关键词 "${term}"`)
+  const noHits = tools.executeTool('search_notes', JSON.stringify({ query: 'zzzqqqjxw' }))
+  ok(noHits.includes('没有找到'), 'search_notes 无结果时给换词建议')
+
+  // 4e. list_notes：概览含一级目录；dir 展开列出该目录笔记
+  const overview = tools.executeTool('list_notes', '{}')
+  ok(overview.includes('一级目录概览'), 'list_notes 无参返回概览')
+  const topDir = first.id.includes('/') ? first.id.split('/')[0] : ''
+  if (topDir) {
+    const listing = tools.executeTool('list_notes', JSON.stringify({ dir: topDir }))
+    ok(listing.includes(first.id), `list_notes 展开 "${topDir}" 含已知笔记`)
+  }
+  ok(tools.executeTool('list_notes', JSON.stringify({ dir: '不存在的目录xyz' })).startsWith('ERROR'),
+    '未知目录返回 ERROR')
+
   // 5. 坏 JSON / 未知工具
   ok(tools.executeTool('read_note', '{oops').startsWith('ERROR'), '坏 JSON 返回 ERROR')
   ok(tools.executeTool('delete_everything', '{}').startsWith('ERROR'), '未知工具返回 ERROR')

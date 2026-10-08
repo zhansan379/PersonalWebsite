@@ -80,16 +80,25 @@ export function createAnthropicTransport(opts: AnthropicOptions): ChatTransport 
       body: JSON.stringify({
         model: req.model,
         max_tokens: req.maxTokens ?? 2048,
-        ...(system ? { system } : {}),
+        // system（知识库目录）与工具定义每轮原样重发，标记 ephemeral 让上游命中
+        // prompt cache，省钱也降 TTFT；OpenAI 侧自动缓存无需标记。
+        ...(system
+          ? {
+              system: [
+                { type: 'text', text: system, cache_control: { type: 'ephemeral' } },
+              ],
+            }
+          : {}),
         messages,
         stream: true,
         ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
         ...(req.tools?.length
           ? {
-              tools: req.tools.map((t: ToolDef) => ({
+              tools: req.tools.map((t: ToolDef, i: number, arr: ToolDef[]) => ({
                 name: t.name,
                 description: t.description,
                 input_schema: t.parameters,
+                ...(i === arr.length - 1 ? { cache_control: { type: 'ephemeral' } } : {}),
               })),
             }
           : {}),

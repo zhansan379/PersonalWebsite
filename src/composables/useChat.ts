@@ -4,7 +4,7 @@ import { createOpenAITransport } from '../lib/llm/openai'
 import { getProvider } from '../lib/llm/providers'
 import { createServerTransport, detectServer, type ServerInfo } from '../lib/llm/server'
 import { toErrorEvent, type ChatMessage, type ChatTransport, type ToolCall } from '../lib/llm/types'
-import { READ_NOTE_TOOL, buildSystemPrompt, executeTool } from '../lib/vaultTools'
+import { VAULT_TOOLS, buildSystemPrompt, executeTool } from '../lib/vaultTools'
 import { useChatSettings } from './useChatSettings'
 import { useVault } from './useVault'
 
@@ -25,8 +25,14 @@ export interface ChatUIMessage {
   streaming?: boolean
 }
 
-const MAX_TOOL_ROUNDS = 5
+const MAX_TOOL_ROUNDS = 8
 const MAX_HISTORY_TURNS = 6
+/** 单次请求里只保留最近 N 条完整工具结果，更早的大结果替换为占位符（模型可重读）。 */
+const TOOL_RESULT_KEEP_RECENT = 3
+const TOOL_RESULT_COMPACT_MIN = 600
+/** protocol 中 user 回合超过此值时，先把最旧的回合摘要化（失败则退回纯截断）。 */
+const HISTORY_SUMMARY_THRESHOLD = 10
+const HISTORY_KEEP_TURNS = 4
 
 const messages = ref<ChatUIMessage[]>([])
 const sending = ref(false)
@@ -41,15 +47,119 @@ let abort: AbortController | null = null
 
 /** 发给 API 的协议历史（含 tool 消息），与 UI 消息平行维护。 */
 let protocol: ChatMessage[] = []
-let cachedSystemPrompt: string | null = null
+/** 早期对话的滚动摘要（见 maybeSummarizeHistory）。 */
+let historySummary = ''
 
 function nextId(): number {
   return ++msgSeq
 }
 
 function systemPrompt(): string {
-  if (!cachedSystemPrompt) cachedSystemPrompt = buildSystemPrompt()
-  return cachedSystemPrompt
+  const base = buildSystemPrompt() // vaultTools 内部已 memo 目录
+  return historySummary ? `${base}\n\n【此前对话摘要】\n${historySummary}` : base
+}
+
+/**
+ * 工具结果压缩：单次请求里，除最近 TOOL_RESULT_KEEP_RECENT 条外，
+ * 超过 TOOL_RESULT_COMPACT_MIN 字符的 tool 消息替换为一行占位符。
+ * 只作用于发给 API 的副本，protocol 本体保留全文。
+ */
+function compressToolResults(history: ChatMessage[]): ChatMessage[] {
+  const toolIdx: number[] = []
+  history.forEach((m, i) => {
+    if (m.role === 'tool') toolIdx.push(i)
+  })
+  if (toolIdx.length <= TOOL_RESULT_KEEP_RECENT) return history
+  const out = history.slice()
+  const cutoff = toolIdx.length - TOOL_RESULT_KEEP_RECENT
+  for (let k = 0; k < cutoff; k++) {
+    const i = toolIdx[k]
+    const m = out[i]
+    if (typeof m.content === 'string' && m.content.length > TOOL_RESULT_COMPACT_MIN) {
+      const title = /^#\s+([^\n（]+)/.exec(m.content)?.[1]?.trim()
+      out[i] = {
+        ...m,
+        content:
+          `[较早的工具结果已省略（原约 ${m.content.length} 字）。` +
+          `${title ? `如需笔记「${title}」的内容，` : '如需原文，'}请重新调用相应工具。]`,
+      }
+    }
+  }
+  return out
+}
+
+/**
+ * 历史摘要：user 回合数超阈值时，把最旧的回合（连同既有摘要）交给当前
+ * transport 压成一段摘要，protocol 只保留最近 HISTORY_KEEP_TURNS 个回合。
+ * 任何失败都静默退回 trimmedHistory 的纯截断行为。
+ */
+async function maybeSummarizeHistory(
+  transport: ChatTransport,
+  model: string,
+  signal: AbortSignal,
+): Promise<void> {
+  let turns = 0
+  for (const m of protocol) if (m.role === 'user') turns++
+  if (turns <= HISTORY_SUMMARY_THRESHOLD) return
+
+  // 切点：保留最近 HISTORY_KEEP_TURNS 个 user 回合（含刚推入的当前问题）
+  let seen = 0
+  let cut = -1
+  for (let i = protocol.length - 1; i >= 0; i--) {
+    if (protocol[i].role === 'user') {
+      seen++
+      if (seen > HISTORY_KEEP_TURNS) {
+        cut = i + 1
+        break
+      }
+    }
+  }
+  if (cut <= 0) return
+
+  const lines: string[] = []
+  let total = 0
+  for (const m of protocol.slice(0, cut)) {
+    let line = ''
+    if (m.role === 'user') line = `用户: ${(m.content ?? '').slice(0, 800)}`
+    else if (m.role === 'assistant' && m.content) line = `助手: ${m.content.slice(0, 800)}`
+    else if (m.role === 'tool') line = '[助手调用了知识库工具]'
+    if (!line) continue
+    total += line.length
+    if (total > 8000) {
+      lines.push('……（更早内容省略）')
+      break
+    }
+    lines.push(line)
+  }
+
+  const prev = historySummary ? `此前的对话摘要：\n${historySummary}\n\n` : ''
+  try {
+    let summary = ''
+    const events = transport.stream({
+      messages: [
+        {
+          role: 'user',
+          content:
+            `${prev}请把下面的对话记录压缩成一段简洁的中文摘要` +
+            `（保留用户问过的问题、得出的结论、引用过的笔记标题），不超过 300 字：\n\n${lines.join('\n')}`,
+        },
+      ],
+      model,
+      maxTokens: 512,
+      signal,
+    })
+    for await (const ev of events) {
+      if (ev.type === 'text-delta') summary += ev.text
+      else if (ev.type === 'error') return // 静默失败
+    }
+    summary = summary.trim()
+    if (summary) {
+      historySummary = summary
+      protocol = protocol.slice(cut)
+    }
+  } catch {
+    // 摘要调用失败（含用户中止）：维持纯截断
+  }
 }
 
 /** 历史截断：保留最近 N 个 user 回合；只在 user 消息边界切，保证 tool_call/result 配对完整。 */
@@ -141,9 +251,14 @@ export function useChat() {
     messages.value.push(uiMsg)
 
     const readIds = new Set<string>()
+    /** 本次提问内已执行过的调用（name+arguments），完全相同的重复调用直接短路。 */
+    const calledKeys = new Set<string>()
     let failed = false
 
     try {
+      // 历史过长时先摘要化（内部自行判断阈值，不满足条件立即返回）
+      await maybeSummarizeHistory(picked.transport, picked.model, abort.signal)
+
       for (let round = 1; round <= MAX_TOOL_ROUNDS; round++) {
         const roundCalls: ToolCall[] = []
         let roundText = ''
@@ -151,9 +266,9 @@ export function useChat() {
         const events = picked.transport.stream({
           messages: [
             { role: 'system', content: systemPrompt() },
-            ...trimmedHistory(MAX_HISTORY_TURNS),
+            ...compressToolResults(trimmedHistory(MAX_HISTORY_TURNS)),
           ],
-          tools: [READ_NOTE_TOOL],
+          tools: VAULT_TOOLS,
           model: picked.model,
           temperature: settings.temperature,
           maxTokens: settings.maxTokens,
@@ -182,28 +297,24 @@ export function useChat() {
         if (roundText) uiMsg.content += '\n\n'
 
         for (const call of roundCalls) {
-          let noteId = ''
-          try {
-            noteId = (JSON.parse(call.arguments || '{}') as { note_id?: string }).note_id ?? ''
-          } catch {
-            // 解析失败时 noteId 为空，走下面的提示分支
-          }
-
+          const callKey = `${call.name}:${call.arguments}`
           let result: string
-          if (noteId && readIds.has(noteId)) {
-            result = `NOTE ALREADY READ: "${noteId}". 请基于已读内容作答，或读取其他笔记。`
+          if (calledKeys.has(callKey)) {
+            result = `TOOL CALL ALREADY MADE: ${call.name}(${call.arguments}). 请基于已有结果继续，或换一个调用。`
           } else {
             result = executeTool(call.name, call.arguments)
-            if (noteId && !result.startsWith('ERROR')) {
-              readIds.add(noteId)
-            }
+            calledKeys.add(callKey)
           }
 
-          if (noteId) {
-            const title = useVaultTitle(noteId)
-            if (title && !readingTitles.value.includes(title)) {
-              readingTitles.value.push(title)
-            }
+          // 来源 chips 只统计真正读到的笔记正文
+          if (call.name === 'read_note' && !result.startsWith('ERROR')) {
+            const noteId = parseNoteId(call.arguments)
+            if (noteId) readIds.add(noteId)
+          }
+
+          const label = readingLabel(call)
+          if (label && !readingTitles.value.includes(label)) {
+            readingTitles.value.push(label)
           }
           protocol.push({ role: 'tool', toolCallId: call.id, content: result })
         }
@@ -262,6 +373,7 @@ export function useChat() {
     if (sending.value) stop()
     messages.value = []
     protocol = []
+    historySummary = ''
   }
 
   function togglePanel(): void {
@@ -285,7 +397,37 @@ export function useChat() {
   }
 }
 
-/** 工具执行时取笔记标题用于状态行展示。 */
-function useVaultTitle(id: string): string | undefined {
-  return useVault().noteMap.get(id)?.title
+/** 从 read_note 调用参数里取 note_id（解析失败返回空串）。 */
+function parseNoteId(argsJson: string): string {
+  try {
+    const args = JSON.parse(argsJson || '{}') as { note_id?: unknown }
+    return typeof args.note_id === 'string' ? args.note_id.trim() : ''
+  } catch {
+    return ''
+  }
+}
+
+/** 状态行标签：按工具类型给出可读描述。 */
+function readingLabel(call: ToolCall): string {
+  if (call.name === 'read_note') {
+    const noteId = parseNoteId(call.arguments)
+    return noteId ? (useVault().noteMap.get(noteId)?.title ?? noteId) : ''
+  }
+  if (call.name === 'search_notes') {
+    try {
+      const q = (JSON.parse(call.arguments || '{}') as { query?: unknown }).query
+      return typeof q === 'string' && q ? `搜索「${q}」` : '搜索笔记'
+    } catch {
+      return '搜索笔记'
+    }
+  }
+  if (call.name === 'list_notes') {
+    try {
+      const dir = (JSON.parse(call.arguments || '{}') as { dir?: unknown }).dir
+      return typeof dir === 'string' && dir ? `浏览目录 ${dir}` : '浏览知识库目录'
+    } catch {
+      return '浏览知识库目录'
+    }
+  }
+  return call.name
 }
