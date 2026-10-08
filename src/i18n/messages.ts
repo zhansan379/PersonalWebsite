@@ -19,6 +19,7 @@ export interface MessageSchema {
     about: string
     vault: string
     projects: string
+    tools: string
   }
   projects: {
     heading: string
@@ -127,5 +128,41 @@ export interface MessageSchema {
     keyMissing: string
     serverDown: string
     goSettings: string
+  }
+  tools: {
+    mermaid: {
+      tab: string
+      editorLabel: string
+      previewLabel: string
+      placeholder: string
+      example: string
+      theme: string
+      themeAuto: string
+      copySvg: string
+      copied: string
+      downloadSvg: string
+      renderError: string
+      credit: string
+      zoomIn: string
+      zoomOut: string
+      resetView: string
+      fullscreen: string
+      exitFullscreen: string
+    }
+    jsontree: {
+      tab: string
+      editorLabel: string
+      previewLabel: string
+      placeholder: string
+      example: string
+      format: string
+      minify: string
+      parseError: string
+      expandAll: string
+      collapseAll: string
+      fullscreen: string
+      exitFullscreen: string
+      credit: string
+    }
   }
 }

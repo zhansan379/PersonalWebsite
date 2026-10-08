@@ -33,6 +33,7 @@ const navItems = computed(() => [
   { to: { name: 'home' }, label: t('blogNav.home') },
   { to: { name: 'vault-index' }, label: t('blogNav.vault') },
   { to: { name: 'projects' }, label: t('blogNav.projects') },
+  { to: { name: 'tools' }, label: t('blogNav.tools') },
   { to: { name: 'about' }, label: t('blogNav.about') },
 ])
 

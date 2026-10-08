@@ -39,6 +39,11 @@ export const router = createRouter({
           component: () => import('../views/ChatView.vue'),
         },
         {
+          path: 'tools',
+          name: 'tools',
+          component: () => import('../views/ToolsView.vue'),
+        },
+        {
           path: 'vault/:pathMatch(.*)*',
           name: 'vault-note',
           component: () => import('../views/VaultNoteView.vue'),
