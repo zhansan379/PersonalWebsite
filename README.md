@@ -23,6 +23,32 @@ Built with Vue 3 + TypeScript + Vite + Tailwind CSS + Vue Router + vue-i18n.
 - Mobile menu, copy-to-clipboard contact pill
 - Blog with Markdown content, reading-time estimate, tag + archive views
 - Light / dark theme toggle
+- Knowledge-base AI assistant (floating chat widget) — agentic tool-calling over vault notes, bring-your-own-key (browser localStorage only) or optional server-side proxy
+
+## AI assistant
+
+A floating chat widget answers questions about the vault notes. The model picks which notes to read via a `read_note` tool call (agentic loop, ≤5 rounds), so no embeddings or search index are needed. Source links under each answer are the notes actually read — never model-generated.
+
+Two connection modes (auto-detected, server first):
+
+1. **Browser direct** — visitors configure their own provider/model/API key in the widget's settings. The key is stored only in the browser's `localStorage` and sent exclusively to the configured LLM endpoint (OpenAI-compatible or Anthropic). It never touches this site's server.
+2. **Server proxy (optional)** — `api/chat.ts` (Vercel Edge function) forwards requests with a key held in server env vars, so visitors can chat without configuring anything. Copy `.env.example` and set:
+
+   | Variable | Description |
+   | --- | --- |
+   | `LLM_PROVIDER` | `openai` (any OpenAI-compatible endpoint: DeepSeek, Qwen, OpenRouter…) or `anthropic` |
+   | `LLM_API_KEY` | The provider API key (server-side only, never shipped to browsers) |
+   | `LLM_BASE_URL` | Optional custom upstream endpoint |
+   | `LLM_MODEL` | Optional model override |
+   | `CHAT_MAX_TOKENS` | Optional server-side `max_tokens` clamp (default 2048) |
+
+   **Never** prefix these with `VITE_` — that would embed the key into the client bundle.
+
+Notes:
+
+- Local dev of the server proxy requires `vercel dev` (plain `vite dev` doesn't serve `api/`); without it the widget detects the missing endpoint and falls back to browser-direct mode.
+- The proxy endpoint is public — set a hard monthly spend limit on your provider console as the last line of defense (the function already clamps message size / `max_tokens`; for real rate limiting add Upstash or Vercel WAF).
+- Some providers don't allow browser CORS (e.g. DashScope) — use OpenRouter or the server proxy mode in that case.
 
 ## Routes
 

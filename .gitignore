@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Environment & secrets（API Key 绝不入库）
+.env
+.env.*
+!.env.example
+.vercel
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

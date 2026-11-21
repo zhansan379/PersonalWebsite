@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>数字签名与 CA 证书</title>
+<style>
+  /* Layout: single centered column; a 16/9 "stage" for the animation, transport controls under it, then knowledge cards and a problem→solution table. */
+  :root{
+    --bg:#f5f7fa; --fg:#1c2531; --muted:#5d6b7d; --card:#ffffff; --line:#dde4ec;
+    --accent:#2b5bd7; --accent-soft:#e4ecfb;
+    --client:#2b5bd7; --server:#0d9480; --danger:#cf4444; --ca:#a9760f;
+    --ok:#1d9e6b; --ok-soft:#e2f4ec; --bad-soft:#fbe7e7; --warn-soft:#faf0dd;
+    --stage:#edf1f7;
+    --shadow:0 1px 3px rgba(28,37,49,.08);
+    --font-display:'Noto Serif SC',Georgia,'Songti SC',serif;
+    --font-body:'Noto Sans SC',system-ui,'PingFang SC','Microsoft YaHei',sans-serif;
+  }
+  /* 嵌入站点的 iframe 展示：iframe 底色固定白色、不跟随站点暗色模式，因此只提供浅色配色。 */
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.7}
+  .wrap{padding:24px 16px 56px}
+
+  /* ---- hero ---- */
+  .eyebrow{font-size:.8rem;letter-spacing:.18em;color:var(--accent);font-weight:700;text-transform:uppercase}
+  h1{font-family:var(--font-display);font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.25;margin:.35em 0 .3em;text-wrap:balance}
+  .lead{color:var(--muted);max-width:62ch;margin:0 0 8px}
+  h2{font-family:var(--font-display);font-size:1.35rem;margin:2.2em 0 .8em;text-wrap:balance}
+
+  /* ---- tabs ---- */
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 2px;margin:26px 0 14px;-webkit-overflow-scrolling:touch}
+  .tab{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--muted);
+       border-radius:999px;padding:6px 14px;font-size:.85rem;cursor:pointer;font-family:var(--font-body);white-space:nowrap}
+  .tab .n{display:inline-block;min-width:1.2em;font-weight:700;color:var(--accent)}
+  .tab[aria-current="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tab[aria-current="true"] .n{color:#fff}
+  .tab:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ---- stage ---- */
+  .scene-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .scene-head h3{margin:0;font-size:1.1rem;font-family:var(--font-display)}
+  .scene-head .tag{font-size:.78rem;color:var(--muted)}
+  .stage{position:relative;width:100%;aspect-ratio:16/9;background:var(--stage);
+         border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  @media (max-width:560px){.stage{aspect-ratio:4/5}}
+
+  .actor{position:absolute;transform:translate(-50%,-50%);z-index:2;transition:opacity .4s}
+  .actor-card{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--muted);
+              border-radius:10px;padding:7px 12px;text-align:center;box-shadow:var(--shadow);min-width:74px}
+  .actor-card .nm{font-weight:700;font-size:.92rem;line-height:1.3}
+  .actor-card .sub{font-size:.72rem;color:var(--muted);line-height:1.3}
+  .actor.lit .actor-card{outline:3px solid var(--accent);outline-offset:2px}
+  .k-you{border-top-color:var(--client)} .k-site{border-top-color:var(--server)}
+  .k-mitm{border-top-color:var(--danger)} .k-ca{border-top-color:var(--ca)}
+  .actor.faded{opacity:.38}
+  .actor.faded .actor-card{border-style:dashed}
+
+  .badge{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);
+         font-size:.72rem;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;
+         background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent);z-index:3;
+         animation:bin .3s ease}
+  .badge.b-ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+  .badge.b-bad{background:var(--bad-soft);color:var(--danger);border-color:var(--danger)}
+  .badge.b-warn{background:var(--warn-soft);color:var(--ca);border-color:var(--ca)}
+  @keyframes bin{from{opacity:0;transform:translateX(-50%) translateY(6px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+  .packet{position:absolute;transform:translate(-50%,-50%);z-index:5;font-size:.76rem;font-weight:600;
+          padding:5px 12px;border-radius:999px;white-space:nowrap;box-shadow:var(--shadow);
+          transition:left 1s cubic-bezier(.45,.05,.35,1),top 1s cubic-bezier(.45,.05,.35,1),opacity .35s}
+  .packet.out{opacity:0}
+  .p-plain{background:var(--card);color:var(--fg);border:1px solid var(--line)}
+  .p-cipher{background:var(--fg);color:var(--bg)}
+  .p-pub{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent)}
+  .p-cert{background:var(--warn-soft);color:var(--ca);border:1px solid var(--ca)}
+  .p-fake,.p-leak{background:var(--bad-soft);color:var(--danger);border:1px dashed var(--danger)}
+  @media (prefers-reduced-motion: reduce){.packet{transition:none}.badge{animation:none}}
+
+  /* ---- narration & verdict ---- */
+  .narr{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
+        border-radius:12px;padding:14px 16px;margin-top:14px;min-height:4.2em}
+  .narr .count{font-variant-numeric:tabular-nums;font-size:.78rem;color:var(--muted);white-space:nowrap;padding-top:3px}
+  .narr .txt{margin:0;font-size:.95rem}
+  .verdict{border-radius:12px;padding:13px 16px;margin-top:12px;font-size:.95rem;border:1px solid;display:none}
+  .verdict.show{display:block;animation:bin .3s ease}
+  .verdict.v-bad{background:var(--bad-soft);border-color:var(--danger);color:var(--fg)}
+  .verdict.v-warn{background:var(--warn-soft);border-color:var(--ca);color:var(--fg)}
+  .verdict.v-good{background:var(--ok-soft);border-color:var(--ok);color:var(--fg)}
+  .verdict b:first-child{margin-right:.4em}
+
+  /* ---- transport ---- */
+  .transport{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:9px;
+       padding:7px 16px;font-size:.88rem;cursor:pointer;font-family:var(--font-body)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .btn:hover{filter:brightness(.97)}
+  .dots{display:flex;gap:5px;margin-left:auto;align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--line)}
+  .dot.done{background:var(--accent)}
+  .dot.now{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+  /* ---- knowledge ---- */
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:6px}
+  @media (max-width:640px){.cards{grid-template-columns:1fr}}
+  .kcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-width:0}
+  .kcard h4{margin:0 0 6px;font-size:1rem;display:flex;align-items:center;gap:8px}
+  .kcard h4 .swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+  .kcard p{margin:0 0 6px;font-size:.9rem;color:var(--muted)}
+  .kcard .pain{font-size:.85rem;color:var(--danger);margin:0}
+  .kcard .pain b{color:var(--danger)}
+
+  .tblwrap{overflow-x:auto;margin-top:6px}
+  table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:520px}
+  th,td{border:1px solid var(--line);padding:9px 13px;text-align:left;vertical-align:top}
+  th{background:var(--stage);font-family:var(--font-display);font-size:.92rem}
+  td:first-child{color:var(--danger);white-space:nowrap}
+  td:last-child{color:var(--ok)}
+
+  .aside{border-left:4px solid var(--ca);background:var(--warn-soft);border-radius:0 12px 12px 0;
+         padding:14px 18px;margin-top:18px;font-size:.92rem}
+  .aside b{color:var(--ca)}
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">HTTPS 信任链 · 动画演示</div>
+    <h1>数字签名与 CA 证书</h1>
+    <p class="lead">从 HTTP 的三大缺陷出发：先看对称加密如何保住机密性、却卡在「密钥配送」；再看非对称加密如何送出密钥、却防不住「公钥调包」；最后看 CA、数字签名与证书链如何一环扣一环地补上信任。</p>
+  </header>
+
+  <nav class="tabs" id="tabs" aria-label="场景选择"></nav>
+
+  <section>
+    <div class="scene-head"><h3 id="sceneTitle"></h3><span class="tag" id="sceneTag"></span></div>
+    <div class="stage" id="stage" aria-live="polite"></div>
+    <div class="narr"><span class="count" id="count">—</span><p class="txt" id="narrTxt"></p></div>
+    <div class="verdict" id="verdict"></div>
+    <div class="transport">
+      <button class="btn" id="prevBtn">上一幕</button>
+      <button class="btn primary" id="playBtn">播放</button>
+      <button class="btn" id="stepBtn">单步</button>
+      <button class="btn" id="replayBtn">重播</button>
+      <button class="btn" id="nextBtn">下一幕</button>
+      <div class="dots" id="dots" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <h2>核心知识点</h2>
+  <div class="cards">
+    <div class="kcard">
+      <h4><span class="swatch" style="background:var(--fg)"></span>对称加密</h4>
+      <p>通信双方各执<b>同一把</b>「会话密钥」：加密用它、解密也用它。速度快，适合传输大量数据；每次会话都会更换一把新密钥。</p>
+      <p class="pain">痛点：密钥配送 —— 不见面，怎么把这把钥匙安全地交给对方？</p>
+    </div>
+    <div class="kcard">
+      <h4><span class="swatch" style="background:var(--accent)"></span>非对称加密</h4>
+      <p>一对钥匙：<b>公钥</b>随便发，<b>私钥</b>绝不离身。公钥加密的内容只有私钥能解。速度慢，所以只用来安全地「协商会话密钥」，之后的数据仍走对称加密。</p>
+      <p class="pain">痛点：公钥真伪难辨 —— 收到的公钥，是网站的还是中间人的？</p>
+    </div>
+    <div class="kcard">
+      <h4><span class="swatch" style="background:var(--server)"></span>哈希运算</h4>
+      <p>把任意长度的内容压成一串定长的短字符：压缩了要传输和计算的信息；内容改动哪怕一个字符，结果也完全不同。<b>哈希不可逆，它不是加密。</b></p>
+    </div>
+    <div class="kcard">
+      <h4><span class="swatch" style="background:var(--ca)"></span>数字签名</h4>
+      <p>CA 对「网站信息 + 公钥」先算哈希，再用 <b>CA 的私钥</b>加密这串哈希 —— 结果就是数字签名。任何人用 CA 公钥解开后比对哈希：一致则证书未被篡改。中间人没有 CA 私钥，改了内容就验签失败。</p>
+    </div>
+    <div class="kcard">
+      <h4><span class="swatch" style="background:var(--ok)"></span>数字证书与 CA</h4>
+      <p>CA（证书颁发机构）把网站的公钥与网站身份<b>绑定</b>成证书，并附上自己的签名。证书里含颁发者（CN 公用名）、绑定域名、有效期、CRL 分发点等字段。</p>
+    </div>
+    <div class="kcard">
+      <h4><span class="swatch" style="background:var(--danger)"></span>证书链</h4>
+      <p>信任逐层传递：根 CA 给自己签名、证书<b>预装</b>在操作系统和浏览器里 → 根私钥签中间 CA → 中间私钥签网站。像一棵树：一根树枝断了不至于连根拔起，某家中间 CA 私钥泄露也不殃及全局。</p>
+    </div>
+  </div>
+
+  <h2>问题 → 对策一览</h2>
+  <div class="tblwrap">
+    <table>
+      <tr><th>HTTP 的缺陷</th><th>HTTPS 的对策</th></tr>
+      <tr><td>明文可被窃听（机密性）</td><td>对称加密：会话密钥把明文变成密文，每次会话换新</td></tr>
+      <tr><td>会话密钥无法安全送达</td><td>非对称加密：公钥加密「神秘字符」，只有网站私钥能解，双方据此算出同一把会话密钥</td></tr>
+      <tr><td>公钥可被中间人调包（完整性 / 身份）</td><td>CA 数字证书 + 数字签名：哈希防篡改，CA 私钥签名、公钥验签</td></tr>
+      <tr><td>CA 的公钥又由谁保证</td><td>证书链：根 CA 自签并预装在系统 / 浏览器 → 中间 CA → 网站证书，逐级验签</td></tr>
+      <tr><td>证书真是这家网站的吗？还有效吗？被吊销了吗？</td><td>浏览器核对域名（CN / 备用名称 SAN）、检查有效期，查 CRL 吊销列表或用 OCSP 在线确认</td></tr>
+    </table>
+  </div>
+
+  <div class="aside">
+    <b>易混点：</b>「公钥加密、私钥解密」用于<b>保密</b>；「私钥签名、公钥验签」用于<b>验明身份</b>。两者背后是同一条数学原理 —— 一把钥匙加密，只有另一把能解。用法的差别来自场景，而不是原理。用视频里的比方：可乐既能喝，也能冲马桶。
+  </div>
+
+  <footer>知识点整理自 B 站视频《数字签名和CA数字证书的核心原理和作用》字幕，动画为概念示意，非真实协议时序。</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var reduced = false;
+  try{ reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){}
+  var FLY = reduced ? 0 : 1000;
+  var GAP_SAY = reduced ? 700 : 2100;
+  var GAP_FLY = FLY + (reduced ? 250 : 700);
+
+  var A = {
+    you:  {label:"你", sub:"浏览器", kind:"you"},
+    site: {label:"网站", sub:"服务器", kind:"site"},
+    mitm: {label:"中间人", sub:"窃听 / 篡改者", kind:"mitm"},
+    ca:   {label:"CA", sub:"证书颁发机构", kind:"ca"},
+    root: {label:"根 CA", sub:"自签名 · 预装在系统", kind:"ca"},
+    mid:  {label:"中间 CA", sub:"承上启下", kind:"ca"}
+  };
+  function actor(key,x,y,faded){ return {key:key, x:x, y:y, faded:!!faded}; }
+
+  var scenes = [
+    {
+      name:"明文之危", title:"第 1 幕 · HTTP 明文传输", tag:"问题①：机密性",
+      intro:"HTTP 链路上，你收发的每一个字节都是「明信片」—— 任何经过的网络节点都能读。",
+      actors:[ actor("you",10,60), actor("mitm",50,24), actor("site",90,60) ],
+      steps:[
+        {t:"fly", from:"you", to:"site", label:"账号 + 密码（明文）", kind:"plain", say:"你输入账号密码，发送给网站登录。"},
+        {t:"fly", from:"site", to:"you", label:"个人信息网页（明文）", kind:"plain", say:"网站验证通过，把带有你个人信息的网页发回来。过程听起来很合理……"},
+        {t:"say", actor:"mitm", badge:"全部可读", tone:"bad", say:"但如果此时有人刻意记录你收发的网络信息 ——"},
+        {t:"fly", from:"you", to:"mitm", label:"同样的明文（被复制）", kind:"leak", say:"你的账号密码、网站发你的个人信息，都一览无遗地暴露给中间人。"}
+      ],
+      verdict:{tone:"bad", mark:"✗", text:"问题① 机密性丢失：明文传输，等于把内容写在明信片上寄出。"}
+    },
+    {
+      name:"对称加密", title:"第 2 幕 · 对称加密", tag:"解决窃听，引出密钥配送",
+      intro:"双方各执一把一模一样的「会话密钥」：明文上路前先变成密文，看不懂的人只能干瞪眼。",
+      actors:[ actor("you",12,58), actor("mitm",50,20,true), actor("site",88,58) ],
+      steps:[
+        {t:"say", actor:["you","site"], badge:"持有同一把会话密钥", tone:"warn", say:"你和网站两边各执一把相同的私钥 —— 加解密都用它，所以叫「对称」。它有期限：每次会话都换新。"},
+        {t:"fly", from:"you", to:"site", label:"密文 8f#2@…", kind:"cipher", say:"发送前用会话密钥加密：明文变成密文，再上路。"},
+        {t:"fly", from:"site", to:"you", label:"密文 q7!z$…", kind:"cipher", say:"网站回传也一样：加密发出，你这边用同一把密钥解开。"},
+        {t:"say", actor:"mitm", badge:"截获的也是乱码 ✗", tone:"ok", say:"中间人不知道密钥，截获的只有乱码；每次会话还换新钥匙，破解更加困难。"}
+      ],
+      verdict:{tone:"warn", mark:"?", text:"遗留问题：这把密钥怎么安全地交到对方手里？总不能先见一面再上网 —— 这就是「密钥配送问题」。"}
+    },
+    {
+      name:"非对称加密", title:"第 3 幕 · 非对称加密", tag:"解决密钥配送",
+      intro:"网站持有一对钥匙：公钥随便发，私钥绝不离身。公钥加密的内容，只有私钥能解。",
+      actors:[ actor("you",12,58), actor("site",88,58) ],
+      steps:[
+        {t:"say", actor:"site", badge:"生成公钥 + 私钥对", tone:"warn", say:"网站生成一对密钥 —— 它们成对使用：一把加密，只有另一把能解。"},
+        {t:"fly", from:"site", to:"you", label:"网站公钥（公开）", kind:"pub", say:"网站把公钥公开地发给你。公钥谁拿到都无所谓。"},
+        {t:"say", actor:"you", badge:"生成「神秘字符」", tone:"warn", say:"你在本地生成一串只有自己知道的神秘字符。"},
+        {t:"fly", from:"you", to:"site", label:"公钥加密后的神秘字符", kind:"cipher", say:"用收到的公钥把它加密再发送。路上谁截获都解不开 —— 公钥加密的，公钥自己解不开。"},
+        {t:"say", actor:"site", badge:"私钥解密 ✓", tone:"ok", say:"全世界只有网站的私钥能解开它，取出那串神秘字符。"},
+        {t:"say", actor:["you","site"], badge:"算出同一把会话密钥", tone:"ok", say:"于是双方各自用这串字符生成同一把会话密钥 —— 之后的大量数据都走更快的对称加密。"}
+      ],
+      verdict:{tone:"good", mark:"✓", text:"密钥配送问题解决。但请多想一步：你凭什么相信，收到的这把公钥真是网站的？"}
+    },
+    {
+      name:"中间人攻击", title:"第 4 幕 · 中间人调包公钥", tag:"问题②：公钥真伪",
+      intro:"时光倒流到网站发公钥的那一刻 —— 如果中间人把公钥扣下、换成自己的呢？",
+      actors:[ actor("you",10,62), actor("mitm",50,22), actor("site",90,62) ],
+      steps:[
+        {t:"fly", from:"site", to:"mitm", label:"网站公钥（被截获）", kind:"pub", say:"网站发出公钥，中间人拦下，并不直接转给你。"},
+        {t:"say", actor:"mitm", badge:"生成自己的密钥对", tone:"bad", say:"中间人自己也生成一对公钥和私钥 ——"},
+        {t:"fly", from:"mitm", to:"you", label:"中间人的公钥（伪装）", kind:"fake", say:"—— 然后把「自己的」公钥发给你。你以为这就是网站的。"},
+        {t:"fly", from:"you", to:"mitm", label:"神秘字符（假公钥加密）", kind:"cipher", say:"你傻乎乎地用假公钥加密神秘字符，发了出去。"},
+        {t:"say", actor:"mitm", badge:"私钥解开 · 偷看 · 篡改", tone:"bad", say:"中间人用自己的私钥轻松解开，看完还不直接转发 —— 而是改掉里面的内容。"},
+        {t:"fly", from:"mitm", to:"site", label:"篡改后（网站真公钥加密）", kind:"cipher", say:"再用网站的真公钥重新加密发出。网站能正常解密，毫无察觉。"},
+        {t:"say", actor:"mitm", badge:"两头各建一把会话密钥", tone:"bad", say:"结果：你 ↔ 中间人一把会话密钥，中间人 ↔ 网站另一把。你和网站之间其实什么都没直接约定，通信想说改就改。"}
+      ],
+      verdict:{tone:"bad", mark:"✗", text:"问题② 完整性 / 身份丢失：收到的公钥是网站的还是中间人的？分不清，前面的加密就「加密了个寂寞」。"}
+    },
+    {
+      name:"数字签名", title:"第 5 幕 · CA 与数字签名", tag:"解决公钥信任",
+      intro:"两只猴子都说自己是美猴王，得请如来佛祖 —— 网络通信也需要大家都信任的第三方：CA。",
+      actors:[ actor("you",10,68), actor("ca",50,22), actor("site",90,68), actor("mitm",12,18,true) ],
+      steps:[
+        {t:"fly", from:"site", to:"ca", label:"网站信息 + 公钥", kind:"plain", say:"网站先把公钥和自身信息交给大家都信任的 CA，申请数字证书。"},
+        {t:"say", actor:"ca", badge:"哈希运算 → 短字符", tone:"warn", say:"CA 对这些内容和公钥做哈希运算：压成一串定长的短字符。改一个字，哈希全变 —— 注意：哈希不是加密。"},
+        {t:"say", actor:"ca", badge:"CA 私钥加密哈希 = 数字签名", tone:"warn", say:"接着 CA 用自己的私钥加密这串哈希 —— 加密结果就是「数字签名」。私钥签名，是 CA 的身份印章。"},
+        {t:"fly", from:"ca", to:"site", label:"数字证书（内容 + 公钥 + 签名）", kind:"cert", say:"CA 把带签名的证书发给网站。证书内容本身是明文，核心全在那枚签名上。"},
+        {t:"fly", from:"site", to:"you", label:"数字证书", kind:"cert", say:"你访问网站时，先收到这份证书。"},
+        {t:"say", actor:"you", badge:"CA 公钥验签", tone:"warn", say:"你用 CA 的公钥解开签名 → 得到哈希①；再对证书内容自己算一次 → 得到哈希②。"},
+        {t:"say", actor:"you", badge:"① = ② ✓ 未被篡改", tone:"ok", say:"两串一致：证书真实，里面的公钥确实属于该网站。中间人没有 CA 私钥，改一个字就验签失败。"}
+      ],
+      verdict:{tone:"good", mark:"✓", text:"公钥与网站身份绑定成功。接下来就能放心地用证书里的公钥，走第 3 幕的流程协商会话密钥。"}
+    },
+    {
+      name:"证书链", title:"第 6 幕 · 证书链与浏览器验证", tag:"信任如何闭环",
+      intro:"CA 的公钥又由谁保证？答案是一层签一层，直到那个预装在你系统里、自己给自己签名的根。",
+      actors:[ actor("root",50,16), actor("mid",50,50), actor("site",88,80), actor("you",12,80) ],
+      steps:[
+        {t:"say", actor:"root", badge:"自签名 · 预装在系统 / 浏览器", tone:"ok", say:"信任的起点：根 CA 给自己的证书签名，这份根证书出厂时就装在你的操作系统和浏览器里。"},
+        {t:"fly", from:"root", to:"mid", label:"根私钥签名 → 中间 CA 证书", kind:"cert", say:"根 CA 用自己的私钥给中间 CA 的证书签名。"},
+        {t:"fly", from:"mid", to:"site", label:"中间私钥签名 → 网站证书", kind:"cert", say:"中间 CA 再给网站证书签名。根 CA 不直接面对海量网站 —— 像一棵树，一根树枝断了不至于连根拔起。"},
+        {t:"fly", from:"site", to:"you", label:"整条证书链", kind:"cert", say:"网站把证书链一起发给浏览器（中间证书有时需浏览器从缓存找或自行下载）。"},
+        {t:"say", actor:"you", badge:"逐级验签 ✓", tone:"ok", say:"浏览器用根证书里的公钥验中间证书的签名，再用中间证书的公钥验网站证书 —— 一环都不能错。"},
+        {t:"say", actor:"you", badge:"域名 · 有效期 · CRL / OCSP", tone:"warn", say:"还没完：核对证书公用名（CN / 备用名称 SAN）与域名是否一致、证书是否过期，再查 CRL 吊销列表或用 OCSP 在线确认没被吊销。"}
+      ],
+      verdict:{tone:"good", mark:"✓", text:"机密性 ✓ 完整性 ✓ 身份真实 ✓ —— 这就是浏览器地址栏那把挂锁背后的整条信任链。"}
+    }
+  ];
+
+  var stage = document.getElementById("stage"),
+      tabsEl = document.getElementById("tabs"),
+      titleEl = document.getElementById("sceneTitle"),
+      tagEl = document.getElementById("sceneTag"),
+      narrTxt = document.getElementById("narrTxt"),
+      countEl = document.getElementById("count"),
+      verdictEl = document.getElementById("verdict"),
+      dotsEl = document.getElementById("dots"),
+      playBtn = document.getElementById("playBtn"),
+      actorEls = {}, posMap = {},
+      cur = 0, idx = 0, playing = false, timers = [];
+
+  function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
+  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+  function buildTabs(){
+    tabsEl.innerHTML = "";
+    scenes.forEach(function(s, i){
+      var b = document.createElement("button");
+      b.className = "tab";
+      b.innerHTML = '<span class="n">' + (i+1) + '</span> ' + s.name;
+      b.setAttribute("aria-current", i === cur ? "true" : "false");
+      b.addEventListener("click", function(){ buildScene(i); });
+      tabsEl.appendChild(b);
+    });
+  }
+
+  function buildDots(){
+    dotsEl.innerHTML = "";
+    scenes[cur].steps.forEach(function(_, i){
+      var d = document.createElement("span");
+      d.className = "dot" + (i < idx ? " done" : i === idx ? " now" : "");
+      dotsEl.appendChild(d);
+    });
+  }
+
+  function buildScene(i){
+    clearTimers(); playing = false; playBtn.textContent = "播放";
+    cur = i; idx = 0;
+    var s = scenes[i];
+    stage.innerHTML = ""; actorEls = {}; posMap = {};
+    s.actors.forEach(function(a){
+      var def = A[a.key];
+      var el = document.createElement("div");
+      el.className = "actor" + (a.faded ? " faded" : "");
+      el.style.left = a.x + "%"; el.style.top = a.y + "%";
+      el.innerHTML = '<div class="actor-card k-' + def.kind + '"><div class="nm">' + def.label + '</div><div class="sub">' + def.sub + '</div></div>';
+      stage.appendChild(el);
+      actorEls[a.key] = el; posMap[a.key] = a;
+    });
+    titleEl.textContent = s.title;
+    tagEl.textContent = s.tag;
+    narrTxt.textContent = s.intro;
+    countEl.textContent = "共 " + s.steps.length + " 步";
+    verdictEl.className = "verdict"; verdictEl.textContent = "";
+    buildTabs(); buildDots();
+  }
+
+  function setBadge(key, text, tone){
+    var host = actorEls[key]; if(!host) return;
+    var old = host.querySelector(".badge"); if(old) old.remove();
+    var b = document.createElement("span");
+    b.className = "badge" + (tone ? " b-" + tone : "");
+    b.textContent = text;
+    host.appendChild(b);
+  }
+
+  function fly(s){
+    var a = posMap[s.from], b = posMap[s.to]; if(!a || !b) return;
+    var el = document.createElement("div");
+    el.className = "packet p-" + s.kind;
+    el.textContent = s.label;
+    el.style.left = a.x + "%"; el.style.top = a.y + "%";
+    stage.appendChild(el);
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      el.style.left = b.x + "%"; el.style.top = b.y + "%";
+    });});
+    later(function(){ el.classList.add("out"); }, FLY + 420);
+    later(function(){ el.remove(); }, FLY + 850);
+  }
+
+  function runStep(){
+    var s = scenes[cur].steps[idx];
+    if(!s){ finishScene(); return; }
+    narrTxt.textContent = s.say;
+    countEl.textContent = "第 " + (idx+1) + " / " + scenes[cur].steps.length + " 步";
+    Object.keys(actorEls).forEach(function(k){ actorEls[k].classList.remove("lit"); });
+    if(s.actor){
+      var list = Array.isArray(s.actor) ? s.actor : [s.actor];
+      list.forEach(function(k){ if(actorEls[k]) actorEls[k].classList.add("lit"); });
+      if(s.badge) setBadge(list[0], s.badge, s.tone);
+    }
+    if(s.t === "fly") fly(s);
+    idx++;
+    buildDots();
+  }
+
+  function finishScene(){
+    playing = false; playBtn.textContent = "播放";
+    Object.keys(actorEls).forEach(function(k){ actorEls[k].classList.remove("lit"); });
+    var v = scenes[cur].verdict;
+    verdictEl.innerHTML = "<b>" + v.mark + "</b>" + v.text;
+    verdictEl.className = "verdict show v-" + v.tone;
+    countEl.textContent = "本幕结束 · 共 " + scenes[cur].steps.length + " 步";
+  }
+
+  function loop(){
+    if(!playing) return;
+    if(idx >= scenes[cur].steps.length){ finishScene(); return; }
+    var s = scenes[cur].steps[idx];
+    runStep();
+    later(loop, s.t === "fly" ? GAP_FLY : GAP_SAY);
+  }
+
+  playBtn.addEventListener("click", function(){
+    if(playing){ playing = false; clearTimers(); playBtn.textContent = "播放"; return; }
+    if(idx >= scenes[cur].steps.length){ buildScene(cur); }
+    playing = true; playBtn.textContent = "暂停";
+    loop();
+  });
+  document.getElementById("stepBtn").addEventListener("click", function(){
+    playing = false; clearTimers(); playBtn.textContent = "播放";
+    if(idx >= scenes[cur].steps.length){ buildScene(cur); return; }
+    var s = scenes[cur].steps[idx];
+    runStep();
+    if(idx >= scenes[cur].steps.length) later(finishScene, s.t === "fly" ? GAP_FLY : 900);
+  });
+  document.getElementById("replayBtn").addEventListener("click", function(){ buildScene(cur); });
+  document.getElementById("prevBtn").addEventListener("click", function(){ buildScene((cur + scenes.length - 1) % scenes.length); });
+  document.getElementById("nextBtn").addEventListener("click", function(){ buildScene((cur + 1) % scenes.length); });
+
+  buildScene(0);
+})();
+</script>
+
+</body>
+</html>

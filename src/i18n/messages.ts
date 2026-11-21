@@ -19,6 +19,8 @@ export interface MessageSchema {
     about: string
     vault: string
     projects: string
+    tools: string
+    reports: string
   }
   projects: {
     heading: string
@@ -75,8 +77,93 @@ export interface MessageSchema {
     created: string
     updated: string
     openCanvas: string
+    htmlPages: string
+    openHtml: string
     copy: string
     copied: string
     back: string
+    mindmapView: string
+    markdownView: string
+  }
+  comments: {
+    title: string
+    manage: string
+  }
+  chat: {
+    title: string
+    open: string
+    expand: string
+    collapse: string
+    placeholder: string
+    send: string
+    stop: string
+    retry: string
+    clear: string
+    settings: string
+    back: string
+    autoSaved: string
+    provider: string
+    model: string
+    baseURL: string
+    apiKey: string
+    apiKeyPlaceholder: string
+    getKey: string
+    temperature: string
+    mode: string
+    modeAuto: string
+    modeServer: string
+    modeDirect: string
+    serverOn: string
+    serverOff: string
+    serverChecking: string
+    recheck: string
+    privacyNote: string
+    clearKey: string
+    sources: string
+    reading: string
+    greeting: string
+    example1: string
+    example2: string
+    example3: string
+    errorGeneric: string
+    keyMissing: string
+    serverDown: string
+    goSettings: string
+  }
+  tools: {
+    mermaid: {
+      tab: string
+      editorLabel: string
+      previewLabel: string
+      placeholder: string
+      example: string
+      theme: string
+      themeAuto: string
+      copySvg: string
+      copied: string
+      downloadSvg: string
+      renderError: string
+      credit: string
+      zoomIn: string
+      zoomOut: string
+      resetView: string
+      fullscreen: string
+      exitFullscreen: string
+    }
+    jsontree: {
+      tab: string
+      editorLabel: string
+      previewLabel: string
+      placeholder: string
+      example: string
+      format: string
+      minify: string
+      parseError: string
+      expandAll: string
+      collapseAll: string
+      fullscreen: string
+      exitFullscreen: string
+      credit: string
+    }
   }
 }
