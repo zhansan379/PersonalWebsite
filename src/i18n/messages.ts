@@ -20,6 +20,7 @@ export interface MessageSchema {
     vault: string
     projects: string
     tools: string
+    reports: string
   }
   projects: {
     heading: string

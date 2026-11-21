@@ -29,11 +29,19 @@ const localeLabel = computed(() =>
   locale.value === 'zh-CN' ? 'EN' : '中文',
 )
 
-const navItems = computed(() => [
+// 行情分析是 public/reports/ 下的静态报告页，不在 Vue Router 内 → 用 <a> 整页跳转
+interface NavItem {
+  label: string
+  to?: { name: string }
+  href?: string
+}
+
+const navItems = computed<NavItem[]>(() => [
   { to: { name: 'home' }, label: t('blogNav.home') },
   { to: { name: 'vault-index' }, label: t('blogNav.vault') },
   { to: { name: 'projects' }, label: t('blogNav.projects') },
   { to: { name: 'tools' }, label: t('blogNav.tools') },
+  { href: '/reports/scatter.html', label: t('blogNav.reports') },
   { to: { name: 'about' }, label: t('blogNav.about') },
 ])
 
@@ -60,14 +68,22 @@ function toggleLocale(): void {
 
         <!-- Desktop nav -->
         <div class="hidden items-center gap-8 text-[0.95rem] md:flex">
-          <RouterLink
-            v-for="item in navItems"
-            :key="item.label"
-            :to="item.to"
-            class="nav-link text-secondary transition-colors hover:text-accent dark:text-secondary-dark"
-          >
-            {{ item.label }}
-          </RouterLink>
+          <template v-for="item in navItems" :key="item.label">
+            <a
+              v-if="item.href"
+              :href="item.href"
+              class="nav-link text-secondary transition-colors hover:text-accent dark:text-secondary-dark"
+            >
+              {{ item.label }}
+            </a>
+            <RouterLink
+              v-else
+              :to="item.to!"
+              class="nav-link text-secondary transition-colors hover:text-accent dark:text-secondary-dark"
+            >
+              {{ item.label }}
+            </RouterLink>
+          </template>
         </div>
 
         <!-- Actions -->
@@ -145,8 +161,16 @@ function toggleLocale(): void {
         >
           <ul class="flex flex-col gap-4">
             <li v-for="item in navItems" :key="item.label" @click="menuOpen = false">
+              <a
+                v-if="item.href"
+                :href="item.href"
+                class="text-lg text-secondary transition-colors hover:text-accent dark:text-secondary-dark"
+              >
+                {{ item.label }}
+              </a>
               <RouterLink
-                :to="item.to"
+                v-else
+                :to="item.to!"
                 class="text-lg text-secondary transition-colors hover:text-accent dark:text-secondary-dark"
               >
                 {{ item.label }}

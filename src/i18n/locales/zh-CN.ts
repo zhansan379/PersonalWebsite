@@ -18,6 +18,7 @@ const messages: MessageSchema = {
     vault: '知识库',
     projects: '开源项目',
     tools: '工具',
+    reports: '行情分析',
   },
   projects: {
     heading: 'Project',

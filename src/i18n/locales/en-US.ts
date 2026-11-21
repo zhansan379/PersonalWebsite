@@ -18,6 +18,7 @@ const messages: MessageSchema = {
     vault: 'Wiki',
     projects: 'Projects',
     tools: 'Tools',
+    reports: 'Job Market',
   },
   projects: {
     heading: 'Project',
